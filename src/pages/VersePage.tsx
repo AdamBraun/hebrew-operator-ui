@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import AppShell from '../layout/AppShell'
+import GraphViewer from '../components/GraphViewer'
 import TraceViewer from '../components/TraceViewer'
 import VerseHeader from '../components/VerseHeader'
 import VerseText from '../components/VerseText'
@@ -162,7 +163,7 @@ function VersePage() {
               <VerseText text={verseText.text} />
 
               <main className="verse-page__split">
-                <section aria-label="Graph" className="verse-page__panel">
+                <section aria-label="Graph" className="verse-page__panel verse-page__panel--graph">
                   <h2>Graph</h2>
                   {graphError ? (
                     <>
@@ -175,7 +176,7 @@ function VersePage() {
                       </button>
                     </>
                   ) : (
-                    <p>Graph placeholder</p>
+                    <GraphViewer dot={data.graphDot ?? ''} />
                   )}
                 </section>
 

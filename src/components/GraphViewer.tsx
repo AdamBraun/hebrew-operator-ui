@@ -56,12 +56,6 @@ function ensureViewportGroup(svg: SVGSVGElement): SVGGElement {
     return existingViewport
   }
 
-  const directChildren = Array.from(svg.children)
-  if (directChildren.length === 1 && directChildren[0] instanceof SVGGElement) {
-    directChildren[0].classList.add('graph-viewer-viewport')
-    return directChildren[0]
-  }
-
   const viewport = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   viewport.classList.add('graph-viewer-viewport')
   while (svg.firstChild) {
@@ -117,6 +111,16 @@ function bindPanZoomHandlers(
     return null
   }
   const svgElement = svg
+
+  svgElement.setAttribute('width', '100%')
+  svgElement.setAttribute('height', '100%')
+  svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+  svgElement.style.display = 'block'
+  svgElement.style.width = '100%'
+  svgElement.style.height = '100%'
+  svgElement.style.maxWidth = '100%'
+  svgElement.style.maxHeight = '100%'
+  svgElement.style.overflow = 'hidden'
 
   const viewport = ensureViewportGroup(svgElement)
   applyTransform(viewport, transformRef.current)
@@ -207,6 +211,7 @@ function bindPanZoomHandlers(
     svgElement.removeEventListener('pointercancel', finishDrag)
     svgElement.style.cursor = ''
     svgElement.style.touchAction = ''
+    svgElement.style.overflow = ''
   }
 }
 
@@ -311,7 +316,15 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
   }, [])
 
   return (
-    <div className={className}>
+    <div
+      className={className}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: 0,
+      }}
+    >
       {!hasDot ? <p>No graph data available.</p> : null}
       {hasDot && isRendering ? <p>Rendering graph...</p> : null}
       {hasDot && renderError ? (
@@ -323,7 +336,16 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
           {showRawDot ? <pre>{dot}</pre> : null}
         </div>
       ) : null}
-      <div ref={containerRef} aria-busy={isRendering} />
+      <div
+        ref={containerRef}
+        aria-busy={isRendering}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          width: '100%',
+          overflow: 'hidden',
+        }}
+      />
     </div>
   )
 }

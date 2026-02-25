@@ -53,6 +53,11 @@
   min-width: 0;
 }
 
+.verse-page__panel--graph {
+  height: min(58vh, 560px);
+  overflow: hidden;
+}
+
 .verse-page__panel--trace {
   height: min(58vh, 560px);
   overflow: hidden;
@@ -68,6 +73,11 @@
   }
 
   .verse-page__panel--trace {
+    height: 50vh;
+    min-height: 320px;
+  }
+
+  .verse-page__panel--graph {
     height: 50vh;
     min-height: 320px;
   }
