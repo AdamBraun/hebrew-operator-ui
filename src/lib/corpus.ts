@@ -1,4 +1,5 @@
 import { fetchJson, fetchText } from './fetcher'
+import { extractVerseText } from './extractVerseText'
 import type { Manifest, VerseArtifacts, VerseRef } from './types'
 import { graphDotUrl, manifestUrl, traceJsonUrl, traceTxtUrl } from './urls'
 
@@ -19,6 +20,6 @@ export async function fetchVerseArtifacts(
     traceJson,
     traceTxt,
     graphDot,
-    verseText: undefined,
+    verseText: extractVerseText(traceJson, traceTxt),
   }
 }
