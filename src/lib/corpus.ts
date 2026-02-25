@@ -17,7 +17,7 @@ function joinUrl(base: string, ...parts: string[]): string {
   return [normalizedBase, ...normalizedParts].join('/')
 }
 
-function manifestUrl(): string {
+export function manifestUrl(): string {
   return joinUrl(CORPUS_BASE_URL, 'manifest.json')
 }
 
@@ -25,15 +25,15 @@ function verseDirUrl(ref: VerseRef): string {
   return joinUrl(CORPUS_BASE_URL, 'refs', ref.book, ref.chapter3, ref.verse3)
 }
 
-function traceJsonUrl(ref: VerseRef): string {
+export function traceJsonUrl(ref: VerseRef): string {
   return joinUrl(verseDirUrl(ref), 'trace.json')
 }
 
-function traceTxtUrl(ref: VerseRef): string {
+export function traceTxtUrl(ref: VerseRef): string {
   return joinUrl(verseDirUrl(ref), 'trace.txt')
 }
 
-function graphDotUrl(ref: VerseRef): string {
+export function graphDotUrl(ref: VerseRef): string {
   return joinUrl(verseDirUrl(ref), 'graph.dot')
 }
 
