@@ -1,13 +1,40 @@
 import { fetchJson, fetchText } from './fetcher'
-import { extractVerseText } from './extractVerseText'
 import { LruCache } from './lru'
 import type { Manifest, VerseArtifacts, VerseRef } from './types'
-import { graphDotUrl, manifestUrl, traceJsonUrl, traceTxtUrl } from './urls'
+
+export const CORPUS_BASE_URL =
+  'https://raw.githubusercontent.com/AdamBraun/hebrew-operator-vm/refs/heads/main/outputs/pasuk-trace-corpus/latest'
 
 const verseArtifactsCache = new LruCache<string, VerseArtifacts>(20)
 
 function verseCacheKey(ref: VerseRef): string {
   return `${ref.book}/${ref.chapter3}/${ref.verse3}`
+}
+
+function joinUrl(base: string, ...parts: string[]): string {
+  const normalizedBase = base.replace(/\/+$/, '')
+  const normalizedParts = parts.map((part) => part.replace(/^\/+|\/+$/g, ''))
+  return [normalizedBase, ...normalizedParts].join('/')
+}
+
+function manifestUrl(): string {
+  return joinUrl(CORPUS_BASE_URL, 'manifest.json')
+}
+
+function verseDirUrl(ref: VerseRef): string {
+  return joinUrl(CORPUS_BASE_URL, 'refs', ref.book, ref.chapter3, ref.verse3)
+}
+
+function traceJsonUrl(ref: VerseRef): string {
+  return joinUrl(verseDirUrl(ref), 'trace.json')
+}
+
+function traceTxtUrl(ref: VerseRef): string {
+  return joinUrl(verseDirUrl(ref), 'trace.txt')
+}
+
+function graphDotUrl(ref: VerseRef): string {
+  return joinUrl(verseDirUrl(ref), 'graph.dot')
 }
 
 export async function fetchManifest(): Promise<Manifest> {
@@ -33,7 +60,6 @@ export async function fetchVerseArtifacts(
     traceJson,
     traceTxt,
     graphDot,
-    verseText: extractVerseText(traceJson, traceTxt),
   }
 
   verseArtifactsCache.set(key, artifacts)
