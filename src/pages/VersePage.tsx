@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
 import AppShell from '../layout/AppShell'
+import { CORPUS_BASE_URL } from '../config'
 
 function VersePage() {
   const { book, chapter, verse } = useParams()
@@ -9,6 +10,7 @@ function VersePage() {
       <h1>
         Verse: {book} {chapter}:{verse}
       </h1>
+      <p>Corpus base URL: {CORPUS_BASE_URL}</p>
       <section
         style={{
           border: '1px solid #d0d7e2',
