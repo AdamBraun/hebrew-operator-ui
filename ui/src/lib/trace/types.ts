@@ -51,3 +51,9 @@ export type TraceJson =
       post_reset_state?: TraceJsonState
       final_dump_state?: TraceJsonState
     } & TraceObject)
+
+export type TraceIndex = {
+  handleById: Map<string, TraceHandle>
+  events: TraceEvent[]
+  refsByHandleId: Map<string, number[]>
+}
