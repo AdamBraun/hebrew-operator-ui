@@ -9,11 +9,10 @@ import VersePager from '../components/VersePager'
 import VerseText from '../components/VerseText'
 import { graphDotUrl, manifestUrl, traceJsonUrl, traceTxtUrl } from '../lib/corpus'
 import { FetchError, fetchJson, fetchText } from '../lib/fetcher'
-import { fetchCorpusIndex } from '../lib'
-import { buildNavModel } from '../lib/navModel'
 import { getNextRef, getPrevRef } from '../lib/navWalk'
 import { normalizeVerseRef } from '../lib/ref'
 import { useVerseHotkeys } from '../hooks/useVerseHotkeys'
+import { useNavState } from '../state/nav'
 import type { Manifest } from '../lib/types'
 import type { NavModel } from '../lib/navModel'
 import type { VerseRef } from '../lib/ref'
@@ -69,12 +68,11 @@ function toLoadError(fileName: string, url: string, error: unknown): LoadError {
 function VersePage() {
   const navigate = useNavigate()
   const { book, chapter, verse } = useParams()
+  const { nav, loading: navLoading, error: navError } = useNavState()
   const ref = useMemo(
     () => normalizeVerseRef({ book, chapter, verse }),
     [book, chapter, verse]
   )
-  const [nav, setNav] = useState<NavModel | null>(null)
-  const [navError, setNavError] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<LoadError | null>(null)
   const [manifest, setManifest] = useState<Manifest | null>(null)
@@ -112,38 +110,6 @@ function VersePage() {
   )
 
   useVerseHotkeys({ onPrev: goPrev, onNext: goNext })
-
-  useEffect(() => {
-    let canceled = false
-
-    async function loadNav() {
-      try {
-        const indexJson = await fetchCorpusIndex()
-        const model = buildNavModel(indexJson)
-
-        if (canceled) {
-          return
-        }
-
-        setNav(model)
-        setNavError(null)
-      } catch (loadError: unknown) {
-        if (canceled) {
-          return
-        }
-
-        const message =
-          loadError instanceof Error ? loadError.message : 'Failed to load corpus index'
-        setNavError(message)
-      }
-    }
-
-    void loadNav()
-
-    return () => {
-      canceled = true
-    }
-  }, [])
 
   useEffect(() => {
     if (!ref || isKnownRef === false) {
@@ -238,7 +204,7 @@ function VersePage() {
   ) : (
     <div className="verse-page__sidebar-state">
       <h2>Navigation</h2>
-      <p>{navError ?? 'Loading corpus index...'}</p>
+      <p>{navLoading ? 'Loading navigation…' : navError ?? 'Navigation unavailable'}</p>
     </div>
   )
 
@@ -281,7 +247,7 @@ function VersePage() {
             </section>
           ) : data && manifest ? (
             <>
-              <VersePager prevRef={prevRef} nextRef={nextRef} />
+              <VersePager prevRef={prevRef} nextRef={nextRef} navLoading={navLoading} />
               <VerseHeader verseRef={ref} manifest={manifest} />
               <VerseText text={verseText.text} />
 

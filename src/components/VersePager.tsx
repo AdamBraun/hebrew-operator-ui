@@ -4,6 +4,7 @@ import type { VerseRef } from '../lib/ref'
 type VersePagerProps = {
   prevRef: VerseRef | null
   nextRef: VerseRef | null
+  navLoading?: boolean
 }
 
 function displayNumber(value: string): string {
@@ -19,14 +20,15 @@ function previewLabel(ref: VerseRef | null, direction: 'Prev' | 'Next'): string 
   return `${direction}: ${ref.book} ${displayNumber(ref.chapter3)}:${displayNumber(ref.verse3)}`
 }
 
-function VersePager({ prevRef, nextRef }: VersePagerProps) {
+function VersePager({ prevRef, nextRef, navLoading = false }: VersePagerProps) {
   const navigate = useNavigate()
 
   return (
     <section className="verse-page__pager" aria-label="Verse Pager">
+      {navLoading ? <span className="verse-page__pager-status">Loading navigation…</span> : null}
       <button
         type="button"
-        disabled={!prevRef}
+        disabled={navLoading || !prevRef}
         title={previewLabel(prevRef, 'Prev')}
         onClick={() =>
           prevRef && navigate(`/${prevRef.book}/${prevRef.chapter3}/${prevRef.verse3}`)
@@ -36,7 +38,7 @@ function VersePager({ prevRef, nextRef }: VersePagerProps) {
       </button>
       <button
         type="button"
-        disabled={!nextRef}
+        disabled={navLoading || !nextRef}
         title={previewLabel(nextRef, 'Next')}
         onClick={() =>
           nextRef && navigate(`/${nextRef.book}/${nextRef.chapter3}/${nextRef.verse3}`)

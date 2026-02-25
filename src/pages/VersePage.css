@@ -8,6 +8,13 @@
   display: flex;
   gap: 0.5rem;
   margin-bottom: 0.55rem;
+  align-items: center;
+}
+
+.verse-page__pager-status {
+  font-size: 0.9rem;
+  color: #475569;
+  margin-right: 0.25rem;
 }
 
 .verse-page__pager button[disabled] {
