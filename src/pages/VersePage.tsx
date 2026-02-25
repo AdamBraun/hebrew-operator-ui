@@ -6,10 +6,30 @@ function VersePage() {
 
   return (
     <AppShell>
-      <h1>Verse Page</h1>
-      <p>
-        Book: {book} | Chapter: {chapter} | Verse: {verse}
-      </p>
+      <h1>
+        Verse: {book} {chapter}:{verse}
+      </h1>
+      <section
+        style={{
+          border: '1px solid #d0d7e2',
+          borderRadius: '8px',
+          padding: '1rem',
+          marginBottom: '1rem',
+        }}
+      >
+        <h2>Graph</h2>
+        <p>Graph will render here</p>
+      </section>
+      <section
+        style={{
+          border: '1px solid #d0d7e2',
+          borderRadius: '8px',
+          padding: '1rem',
+        }}
+      >
+        <h2>Trace</h2>
+        <p>Trace will render here</p>
+      </section>
     </AppShell>
   )
 }
