@@ -3,6 +3,7 @@ import type { TraceEvent, TraceObject } from './types'
 const EVENT_REF_FIELDS = {
   WORD_START: ['activeConstruct', 'focus', 'inboundFocus', 'C0', 'F0'],
   alias: ['id', 'left', 'right'],
+  boundary_open: ['id', 'boundaryId', 'inside', 'outside'],
   boundary_close: ['id', 'inside', 'outside'],
   finalize: ['boundaryId', 'id', 'residueId', 'target', 'outside'],
   endpoint: ['boundaryId', 'id', 'domain', 'endpoint'],
