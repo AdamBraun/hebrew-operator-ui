@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import AppShell from '../layout/AppShell'
+import TraceViewer from '../components/TraceViewer'
 import VerseText from '../components/VerseText'
 import { fetchManifest, fetchVerseArtifacts } from '../lib/corpus'
 import { FetchError } from '../lib/fetcher'
@@ -141,10 +142,10 @@ function VersePage() {
                     borderRadius: '8px',
                     padding: '1rem',
                     minHeight: '240px',
+                    height: '520px',
                   }}
                 >
-                  <h2>Trace</h2>
-                  <p>Trace placeholder</p>
+                  <TraceViewer text={artifacts.traceTxt} />
                 </section>
               </main>
             </>
