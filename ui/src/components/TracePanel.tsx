@@ -1,12 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatEvent } from '../lib/trace/format_event'
-import type { TraceEvent, TraceJson, TraceJsonState, TraceObject } from '../lib/trace/types'
+import type {
+  TraceEvent,
+  TraceHandle,
+  TraceJson,
+  TraceJsonState,
+  TraceObject,
+} from '../lib/trace/types'
 import type { WordGroup } from '../lib/trace/words'
+import HandleInspector from './HandleInspector'
 import './TracePanel.css'
 
 type TracePanelProps = {
   trace: TraceJson
   selectedHandleId?: string
+  handleById: Map<string, TraceHandle>
   refsByHandleId: Map<string, number[]>
   wordGroups: WordGroup[]
 }
@@ -40,18 +48,6 @@ function resolveEvents(trace: TraceJson): TraceEvent[] {
   }
 
   return []
-}
-
-function refsSetForHandle(
-  refsByHandleId: Map<string, number[]>,
-  selectedHandleId?: string
-): Set<number> {
-  if (!selectedHandleId) {
-    return new Set<number>()
-  }
-
-  const refs = refsByHandleId.get(selectedHandleId) ?? []
-  return new Set(refs)
 }
 
 function wordContainingEvent(groups: WordGroup[], eventIndex: number): number | null {
@@ -108,31 +104,57 @@ function EventDetails({ lines }: { lines: string[] }) {
   )
 }
 
-function TracePanel({ trace, selectedHandleId, refsByHandleId, wordGroups }: TracePanelProps) {
+function TracePanel({
+  trace,
+  selectedHandleId,
+  handleById,
+  refsByHandleId,
+  wordGroups,
+}: TracePanelProps) {
   const events = useMemo(() => resolveEvents(trace), [trace])
-  const selectedRefs = useMemo(
-    () => refsSetForHandle(refsByHandleId, selectedHandleId),
+  const selectedHandle = useMemo(
+    () => (selectedHandleId ? handleById.get(selectedHandleId) : undefined),
+    [handleById, selectedHandleId]
+  )
+  const highlighted = useMemo(
+    () =>
+      selectedHandleId
+        ? [...new Set(refsByHandleId.get(selectedHandleId) ?? [])].sort((a, b) => a - b)
+        : [],
     [refsByHandleId, selectedHandleId]
   )
+  const highlightedSet = useMemo(() => new Set(highlighted), [highlighted])
+  const highlightedSignature = useMemo(
+    () => `${selectedHandleId ?? ''}:${highlighted.join(',')}`,
+    [highlighted, selectedHandleId]
+  )
+  const [matchCursor, setMatchCursor] = useState<number>(-1)
+
+  useEffect(() => {
+    setMatchCursor(highlighted.length > 0 ? 0 : -1)
+  }, [highlightedSignature])
+
+  const activeEventIndex =
+    matchCursor >= 0 && matchCursor < highlighted.length ? highlighted[matchCursor] : null
+  const focusEventIndex = activeEventIndex ?? highlighted[0] ?? null
+
   const currentWordIndex = useMemo(() => {
-    if (selectedRefs.size === 0) {
+    if (focusEventIndex === null) {
       return null
     }
 
-    const refs = [...selectedRefs].sort((a, b) => a - b)
-    for (const ref of refs) {
-      const match = wordContainingEvent(wordGroups, ref)
-      if (match !== null) {
-        return match
-      }
+    const match = wordContainingEvent(wordGroups, focusEventIndex)
+    if (match !== null) {
+      return match
     }
 
     return null
-  }, [selectedRefs, wordGroups])
+  }, [focusEventIndex, wordGroups])
   const defaultWordIndex = currentWordIndex ?? wordGroups[0]?.wordIndex ?? null
   const [expandedWordIndices, setExpandedWordIndices] = useState<Set<number>>(() =>
     defaultWordIndex === null ? new Set<number>() : new Set<number>([defaultWordIndex])
   )
+  const scrollRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (defaultWordIndex === null) {
@@ -154,6 +176,17 @@ function TracePanel({ trace, selectedHandleId, refsByHandleId, wordGroups }: Tra
     })
   }, [currentWordIndex, defaultWordIndex])
 
+  useEffect(() => {
+    if (activeEventIndex === null) {
+      return
+    }
+
+    const eventEl = scrollRef.current?.querySelector<HTMLElement>(
+      `[data-event-index="${activeEventIndex}"]`
+    )
+    eventEl?.scrollIntoView({ block: 'center', inline: 'nearest' })
+  }, [activeEventIndex, expandedWordIndices])
+
   function toggleWord(wordIndex: number) {
     setExpandedWordIndices((current) => {
       const next = new Set(current)
@@ -167,18 +200,60 @@ function TracePanel({ trace, selectedHandleId, refsByHandleId, wordGroups }: Tra
     })
   }
 
+  function goToPrevMatch() {
+    if (highlighted.length === 0) {
+      return
+    }
+
+    setMatchCursor((current) => {
+      if (current < 0) {
+        return highlighted.length - 1
+      }
+
+      return (current - 1 + highlighted.length) % highlighted.length
+    })
+  }
+
+  function goToNextMatch() {
+    if (highlighted.length === 0) {
+      return
+    }
+
+    setMatchCursor((current) => {
+      if (current < 0) {
+        return 0
+      }
+
+      return (current + 1) % highlighted.length
+    })
+  }
+
   return (
     <section className="trace-panel" aria-label="Trace panel">
       <header className="trace-panel__header">
         <h2 className="trace-panel__title">Trace</h2>
-        {selectedHandleId ? (
-          <p className="trace-panel__selected">
-            selected=<span className="trace-panel__selected-id">{selectedHandleId}</span>
+        <div className="trace-panel__match-nav">
+          <button type="button" onClick={goToPrevMatch} disabled={highlighted.length === 0}>
+            Prev match
+          </button>
+          <p className="trace-panel__match-status">
+            {highlighted.length === 0 || matchCursor < 0
+              ? '0 matches'
+              : `Match ${matchCursor + 1}/${highlighted.length}`}
           </p>
-        ) : null}
+          <button type="button" onClick={goToNextMatch} disabled={highlighted.length === 0}>
+            Next match
+          </button>
+        </div>
       </header>
 
-      <div className="trace-panel__scroll" role="region" aria-label="Trace by word">
+      <HandleInspector
+        selectedHandleId={selectedHandleId}
+        handle={selectedHandle}
+        referenceCount={highlighted.length}
+      />
+
+      <div ref={scrollRef} className="trace-panel__scroll" role="region" aria-label="Trace by word">
         {wordGroups.length === 0 ? (
           <p className="trace-panel__empty">No WORD_START events found.</p>
         ) : (
@@ -218,14 +293,17 @@ function TracePanel({ trace, selectedHandleId, refsByHandleId, wordGroups }: Tra
                       }
 
                       const formatted = formatEvent(event)
-                      const isHit = selectedRefs.has(eventIndex)
+                      const isHighlighted = highlightedSet.has(eventIndex)
+                      const isActiveMatch = activeEventIndex === eventIndex
 
                       return (
                         <article
                           key={eventIndex}
+                          data-event-index={eventIndex}
                           className={[
                             'trace-panel__event',
-                            isHit ? 'trace-panel__event--highlight' : '',
+                            isHighlighted ? 'is-highlighted' : '',
+                            isActiveMatch ? 'is-active-match' : '',
                           ]
                             .filter(Boolean)
                             .join(' ')}
