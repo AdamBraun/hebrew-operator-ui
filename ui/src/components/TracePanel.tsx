@@ -17,6 +17,7 @@ type TracePanelProps = {
   handleById: Map<string, TraceHandle>
   refsByHandleId: Map<string, number[]>
   wordGroups: WordGroup[]
+  scrollToEventIndex?: number | null
 }
 
 function isObject(value: unknown): value is TraceObject {
@@ -110,6 +111,7 @@ function TracePanel({
   handleById,
   refsByHandleId,
   wordGroups,
+  scrollToEventIndex,
 }: TracePanelProps) {
   const events = useMemo(() => resolveEvents(trace), [trace])
   const selectedHandle = useMemo(
@@ -136,7 +138,7 @@ function TracePanel({
 
   const activeEventIndex =
     matchCursor >= 0 && matchCursor < highlighted.length ? highlighted[matchCursor] : null
-  const focusEventIndex = activeEventIndex ?? highlighted[0] ?? null
+  const focusEventIndex = activeEventIndex ?? scrollToEventIndex ?? highlighted[0] ?? null
 
   const currentWordIndex = useMemo(() => {
     if (focusEventIndex === null) {
@@ -177,15 +179,15 @@ function TracePanel({
   }, [currentWordIndex, defaultWordIndex])
 
   useEffect(() => {
-    if (activeEventIndex === null) {
+    if (focusEventIndex === null) {
       return
     }
 
     const eventEl = scrollRef.current?.querySelector<HTMLElement>(
-      `[data-event-index="${activeEventIndex}"]`
+      `[data-event-index="${focusEventIndex}"]`
     )
     eventEl?.scrollIntoView({ block: 'center', inline: 'nearest' })
-  }, [activeEventIndex, expandedWordIndices])
+  }, [focusEventIndex, expandedWordIndices])
 
   function toggleWord(wordIndex: number) {
     setExpandedWordIndices((current) => {

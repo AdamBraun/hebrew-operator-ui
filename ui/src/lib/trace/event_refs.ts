@@ -28,8 +28,18 @@ const EVENT_REF_FIELDS = {
   utter_close: ['id'],
 } as const satisfies Record<string, readonly string[]>
 
+type EventRefFieldMap = typeof EVENT_REF_FIELDS
+
 function isObject(value: unknown): value is TraceObject {
   return typeof value === 'object' && value !== null
+}
+
+function fieldsForType(type: string): readonly string[] | null {
+  if (Object.hasOwn(EVENT_REF_FIELDS, type)) {
+    return EVENT_REF_FIELDS[type as keyof EventRefFieldMap]
+  }
+
+  return null
 }
 
 function stringField(data: TraceObject, key: string): string | null {
@@ -42,7 +52,7 @@ function stringField(data: TraceObject, key: string): string | null {
 }
 
 export function eventRefs(e: TraceEvent): string[] {
-  const fields = EVENT_REF_FIELDS[e.type]
+  const fields = fieldsForType(e.type)
   if (!fields || !isObject(e.data)) {
     return []
   }

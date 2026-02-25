@@ -195,4 +195,21 @@ describe('extractGraphTokenFromEvent', () => {
 
     expect(extractGraphMatchTokensFromEvent(clickEvent(shape))).toEqual(['Alpha Beta'])
   })
+
+  it('treats quoted title as canonical handle id', () => {
+    const { shape } = buildNodeFixture({
+      className: 'node',
+      titleText: '  "ב:2:4"  ',
+      labelText: 'ב:2:4\\nboundary | atomic,hard',
+    })
+
+    expect(extractGraphTokenFromEvent(clickEvent(shape))).toEqual({
+      token: 'ב:2:4',
+      source: 'title',
+    })
+    expect(extractGraphMatchTokensFromEvent(clickEvent(shape))).toEqual([
+      'ב:2:4',
+      'ב:2:4\\nboundary | atomic,hard',
+    ])
+  })
 })

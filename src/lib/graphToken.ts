@@ -70,16 +70,24 @@ function hasNodeOrEdgeClass(element: ElementLike): boolean {
   return /(^|\s)(node|edge)(\s|$)/.test(className)
 }
 
-function normalizeToken(raw: string): string {
-  let token = raw.trim().replace(/\s+/g, ' ')
-  const hasDoubleQuotes = token.startsWith('"') && token.endsWith('"')
-  const hasSingleQuotes = token.startsWith("'") && token.endsWith("'")
+function stripOuterQuotes(raw: string): string {
+  const text = raw.trim()
+  const hasDoubleQuotes = text.startsWith('"') && text.endsWith('"')
+  const hasSingleQuotes = text.startsWith("'") && text.endsWith("'")
 
-  if (token.length >= 2 && (hasDoubleQuotes || hasSingleQuotes)) {
-    token = token.slice(1, -1).trim().replace(/\s+/g, ' ')
+  if (text.length >= 2 && (hasDoubleQuotes || hasSingleQuotes)) {
+    return text.slice(1, -1).trim()
   }
 
-  return token
+  return text
+}
+
+function normalizeHandleIdToken(raw: string): string {
+  return stripOuterQuotes(raw).replace(/\s+/g, ' ')
+}
+
+function normalizeLabelToken(raw: string): string {
+  return stripOuterQuotes(raw).replace(/\s+/g, ' ')
 }
 
 function findGraphGroup(start: ElementLike | null): ElementLike | null {
@@ -113,9 +121,9 @@ function tokenFromGraphGroup(graphGroup: ElementLike): GraphTokenResult | null {
 
 function readGraphGroupTokens(graphGroup: ElementLike): GraphGroupTokens {
   const titleText = graphGroup.querySelector?.('title')?.textContent
-  const title = typeof titleText === 'string' ? normalizeToken(titleText) : ''
+  const title = typeof titleText === 'string' ? normalizeHandleIdToken(titleText) : ''
   const labelText = graphGroup.querySelector?.('text')?.textContent
-  const label = typeof labelText === 'string' ? normalizeToken(labelText) : ''
+  const label = typeof labelText === 'string' ? normalizeLabelToken(labelText) : ''
 
   return { title, label }
 }

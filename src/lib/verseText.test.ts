@@ -20,6 +20,13 @@ describe('verseText.extractVerseText', () => {
     })
   })
 
+  it('uses traceJson.cleaned_text when present', () => {
+    expect(extractVerseText({ cleaned_text: 'בְּרֵאשִׁית' }, '')).toEqual({
+      text: 'בְּרֵאשִׁית',
+      source: 'json',
+    })
+  })
+
   it('falls back to cleaned line in trace.txt', () => {
     const traceTxt = ['ref: deuteronomy/006/004', 'cleaned: שְׁמַע יִשְׂרָאֵל'].join('\n')
     expect(extractVerseText({}, traceTxt)).toEqual({
@@ -36,4 +43,3 @@ describe('verseText.extractVerseText', () => {
     })
   })
 })
-

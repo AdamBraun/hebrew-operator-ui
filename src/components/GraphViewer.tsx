@@ -5,6 +5,7 @@ import './GraphViewer.css'
 
 type GraphViewerProps = {
   dot: string
+  onNodeClick?: (handleId: string) => void
   onTokenClick?: (token: string, matchTokens?: string[]) => void
   className?: string
 }
@@ -97,6 +98,7 @@ function computeFitTransform(svg: SVGSVGElement, viewport: SVGGElement): GraphTr
 
 function bindDelegatedGraphClickHandler(
   container: HTMLDivElement,
+  onNodeClickRef: MutableRefObject<GraphViewerProps['onNodeClick']>,
   onTokenClickRef: MutableRefObject<GraphViewerProps['onTokenClick']>
 ): () => void {
   function onContainerClick(event: MouseEvent) {
@@ -105,6 +107,7 @@ function bindDelegatedGraphClickHandler(
       return
     }
     const matchTokens = extractGraphMatchTokensFromEvent(event)
+    onNodeClickRef.current?.(tokenResult.token)
     onTokenClickRef.current?.(
       tokenResult.token,
       matchTokens.length > 0 ? matchTokens : [tokenResult.token]
@@ -240,7 +243,7 @@ function bindPanZoomHandlers(
   }
 }
 
-function GraphViewer({ dot, onTokenClick, className }: GraphViewerProps) {
+function GraphViewer({ dot, onNodeClick, onTokenClick, className }: GraphViewerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const graphvizRef = useRef<GraphvizRenderer | null>(null)
   const panZoomCleanupRef = useRef<(() => void) | null>(null)
@@ -249,6 +252,7 @@ function GraphViewer({ dot, onTokenClick, className }: GraphViewerProps) {
   const transformRef = useRef<GraphTransform>(INITIAL_TRANSFORM)
   const svgRef = useRef<SVGSVGElement | null>(null)
   const viewportRef = useRef<SVGGElement | null>(null)
+  const onNodeClickRef = useRef<GraphViewerProps['onNodeClick']>(onNodeClick)
   const onTokenClickRef = useRef<GraphViewerProps['onTokenClick']>(onTokenClick)
   const [isRendering, setIsRendering] = useState(false)
   const [renderError, setRenderError] = useState<string | null>(null)
@@ -259,6 +263,7 @@ function GraphViewer({ dot, onTokenClick, className }: GraphViewerProps) {
     [dot]
   )
 
+  onNodeClickRef.current = onNodeClick
   onTokenClickRef.current = onTokenClick
 
   useEffect(() => {
@@ -267,7 +272,11 @@ function GraphViewer({ dot, onTokenClick, className }: GraphViewerProps) {
       return
     }
 
-    clickCleanupRef.current = bindDelegatedGraphClickHandler(container, onTokenClickRef)
+    clickCleanupRef.current = bindDelegatedGraphClickHandler(
+      container,
+      onNodeClickRef,
+      onTokenClickRef
+    )
     return () => {
       clickCleanupRef.current?.()
       clickCleanupRef.current = null

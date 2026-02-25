@@ -3,14 +3,18 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppShell from '../layout/AppShell'
 import GraphViewer from '../components/GraphViewer'
 import SidebarNav from '../components/SidebarNav'
-import TraceViewer from '../components/TraceViewer'
 import VerseHeader from '../components/VerseHeader'
 import VersePager from '../components/VersePager'
 import VerseText from '../components/VerseText'
-import { graphDotUrl, manifestUrl, traceJsonUrl, traceTxtUrl } from '../lib/corpus'
+import TracePanel from '../../ui/src/components/TracePanel'
+import { buildTraceIndex } from '../../ui/src/lib/trace/index_trace'
+import type { TraceIndex, TraceJson } from '../../ui/src/lib/trace/types'
+import { buildWordGroups } from '../../ui/src/lib/trace/words'
+import { graphDotUrl, manifestUrl, traceJsonUrl } from '../lib/corpus'
 import { FetchError, fetchJson, fetchText } from '../lib/fetcher'
 import { getNextRefTiered, getPrevRefTiered } from '../lib/navWalkTiered'
 import { normalizeVerseRef } from '../lib/ref'
+import { resolveHandleIdFromGraphSelection } from '../lib/graphSelection'
 import { useVerseHotkeys } from '../hooks/useVerseHotkeys'
 import { useNavState } from '../state/nav'
 import type { Manifest } from '../lib/types'
@@ -25,8 +29,7 @@ type LoadError = {
 }
 
 type VerseData = {
-  traceJson: any
-  traceTxt: string
+  traceJson: TraceJson
   graphDot: string | null
 }
 
@@ -88,7 +91,7 @@ function VersePage() {
   const [navTransitionLoading, setNavTransitionLoading] = useState(false)
   const [prevRef, setPrevRef] = useState<VerseRef | null>(null)
   const [nextRef, setNextRef] = useState<VerseRef | null>(null)
-  const [highlightTokens, setHighlightTokens] = useState<string[]>([])
+  const [selectedHandleId, setSelectedHandleId] = useState<string | null>(null)
   const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
   const isKnownRef = useMemo(() => {
     if (!ref || !nav) {
@@ -182,7 +185,7 @@ function VersePage() {
   }, [ensureChapters, ensureVerses, isKnownRef, nav, ref])
 
   useEffect(() => {
-    setHighlightTokens([])
+    setSelectedHandleId(null)
   }, [ref?.book, ref?.chapter3, ref?.verse3])
 
   useEffect(() => {
@@ -207,28 +210,23 @@ function VersePage() {
       const urls = {
         manifest: manifestUrl(),
         traceJson: traceJsonUrl(currentRef),
-        traceTxt: traceTxtUrl(currentRef),
         graphDot: graphDotUrl(currentRef),
       }
 
-      const [manifestResult, traceJsonResult, traceTxtResult, graphDotResult] =
-        await Promise.allSettled([
-          fetchJson<Manifest>(urls.manifest),
-          fetchJson<any>(urls.traceJson),
-          fetchText(urls.traceTxt),
-          fetchText(urls.graphDot),
-        ])
+      const [manifestResult, traceJsonResult, graphDotResult] = await Promise.allSettled([
+        fetchJson<Manifest>(urls.manifest, { cache: 'no-cache' }),
+        fetchJson<TraceJson>(urls.traceJson, { cache: 'no-cache' }),
+        fetchText(urls.graphDot, { cache: 'no-cache' }),
+      ])
 
       if (canceled) {
         return
       }
 
-      if (traceTxtResult.status === 'rejected') {
-        setManifest(
-          manifestResult.status === 'fulfilled' ? manifestResult.value : null
-        )
+      if (traceJsonResult.status === 'rejected') {
+        setManifest(manifestResult.status === 'fulfilled' ? manifestResult.value : null)
         setData(null)
-        setError(toLoadError('trace.txt', urls.traceTxt, traceTxtResult.reason))
+        setError(toLoadError('trace.json', urls.traceJson, traceJsonResult.reason))
         setLoading(false)
         return
       }
@@ -240,8 +238,7 @@ function VersePage() {
       }
 
       setData({
-        traceJson: traceJsonResult.status === 'fulfilled' ? traceJsonResult.value : {},
-        traceTxt: traceTxtResult.value,
+        traceJson: traceJsonResult.value,
         graphDot: graphDotResult.status === 'fulfilled' ? graphDotResult.value : null,
       })
       setLoading(false)
@@ -259,8 +256,59 @@ function VersePage() {
       return { text: '(verse text unavailable)', source: 'none' as const }
     }
 
-    return extractVerseText(data.traceJson, data.traceTxt)
+    return extractVerseText(data.traceJson, '')
   }, [data])
+
+  const traceModel = useMemo(() => {
+    if (!data) {
+      return {
+        traceIndex: null as TraceIndex | null,
+        wordGroups: [],
+        error: null as LoadError | null,
+      }
+    }
+
+    try {
+      const traceIndex = buildTraceIndex(data.traceJson)
+      const wordGroups = buildWordGroups(traceIndex.events)
+      return { traceIndex, wordGroups, error: null }
+    } catch (buildError) {
+      return {
+        traceIndex: null as TraceIndex | null,
+        wordGroups: [],
+        error: {
+          message: 'Failed to build trace index',
+          detail:
+            buildError instanceof Error
+              ? buildError.message
+              : 'Unknown trace index failure',
+        },
+      }
+    }
+  }, [data])
+
+  const firstHighlightedEventIndex = useMemo(() => {
+    if (!selectedHandleId || !traceModel.traceIndex) {
+      return null
+    }
+
+    const refs = traceModel.traceIndex.refsByHandleId.get(selectedHandleId)
+    if (!refs || refs.length === 0) {
+      return null
+    }
+
+    return refs[0]
+  }, [selectedHandleId, traceModel.traceIndex])
+
+  useEffect(() => {
+    if (!selectedHandleId || !traceModel.traceIndex) {
+      return
+    }
+
+    if (!traceModel.traceIndex.handleById.has(selectedHandleId)) {
+      setSelectedHandleId(null)
+    }
+  }, [selectedHandleId, traceModel.traceIndex])
 
   function retryLoad() {
     setRetryCount((count) => count + 1)
@@ -338,9 +386,9 @@ function VersePage() {
               <main className="verse-page__split">
                 <section aria-label="Graph" className="verse-page__panel verse-page__panel--graph">
                   <h2>Graph</h2>
-                  {highlightTokens.length > 0 ? (
+                  {selectedHandleId ? (
                     <p className="verse-page__error-detail">
-                      Highlighted: <code>{highlightTokens[0]}</code>
+                      Selected handle: <code>{selectedHandleId}</code>
                     </p>
                   ) : null}
                   {graphError ? (
@@ -357,8 +405,12 @@ function VersePage() {
                     <GraphViewer
                       dot={data.graphDot ?? ''}
                       onTokenClick={(token, matchTokens) =>
-                        setHighlightTokens(
-                          matchTokens && matchTokens.length > 0 ? matchTokens : [token]
+                        setSelectedHandleId(
+                          resolveHandleIdFromGraphSelection(
+                            token,
+                            matchTokens,
+                            traceModel.traceIndex
+                          )
                         )
                       }
                     />
@@ -366,11 +418,25 @@ function VersePage() {
                 </section>
 
                 <section aria-label="Trace" className="verse-page__panel verse-page__panel--trace">
-                  <TraceViewer
-                    traceText={data.traceTxt}
-                    highlightTokens={highlightTokens}
-                    onClearHighlight={() => setHighlightTokens([])}
-                  />
+                  {traceModel.error ? (
+                    <>
+                      <p role="alert" className="verse-page__panel-alert">
+                        {traceModel.error.message}
+                      </p>
+                      <p className="verse-page__error-detail">{traceModel.error.detail}</p>
+                    </>
+                  ) : traceModel.traceIndex ? (
+                    <TracePanel
+                      trace={data.traceJson}
+                      selectedHandleId={selectedHandleId ?? undefined}
+                      handleById={traceModel.traceIndex.handleById}
+                      refsByHandleId={traceModel.traceIndex.refsByHandleId}
+                      wordGroups={traceModel.wordGroups}
+                      scrollToEventIndex={firstHighlightedEventIndex}
+                    />
+                  ) : (
+                    <p className="verse-page__error-detail">Trace index unavailable.</p>
+                  )}
                 </section>
               </main>
             </>
