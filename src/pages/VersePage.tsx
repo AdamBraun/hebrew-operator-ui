@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import AppShell from '../layout/AppShell'
-import { CORPUS_BASE_URL } from '../config'
+import { CORPUS_BASE_URL } from '../config/corpus'
 
 function VersePage() {
   const { book, chapter, verse } = useParams()
