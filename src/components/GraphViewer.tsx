@@ -16,6 +16,11 @@ type GraphTransform = {
   translateY: number
 }
 
+type CanvasPoint = {
+  x: number
+  y: number
+}
+
 const INITIAL_TRANSFORM: GraphTransform = {
   scale: 1,
   translateX: 0,
@@ -35,6 +40,61 @@ function toErrorMessage(error: unknown): string {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
+}
+
+function fallbackClientPointToCanvasPoint(
+  svg: SVGSVGElement,
+  clientX: number,
+  clientY: number
+): CanvasPoint {
+  const rect = svg.getBoundingClientRect()
+  const viewBox = svg.viewBox.baseVal
+
+  if (rect.width > 0 && rect.height > 0 && viewBox.width > 0 && viewBox.height > 0) {
+    const relativeX = (clientX - rect.left) / rect.width
+    const relativeY = (clientY - rect.top) / rect.height
+    return {
+      x: viewBox.x + relativeX * viewBox.width,
+      y: viewBox.y + relativeY * viewBox.height,
+    }
+  }
+
+  return {
+    x: clientX - rect.left,
+    y: clientY - rect.top,
+  }
+}
+
+function clientPointToCanvasPoint(svg: SVGSVGElement, clientX: number, clientY: number): CanvasPoint {
+  const ctm = svg.getScreenCTM()
+  if (!ctm) {
+    return fallbackClientPointToCanvasPoint(svg, clientX, clientY)
+  }
+
+  const point = svg.createSVGPoint()
+  point.x = clientX
+  point.y = clientY
+  const canvasPoint = point.matrixTransform(ctm.inverse())
+
+  return {
+    x: canvasPoint.x,
+    y: canvasPoint.y,
+  }
+}
+
+function getCanvasCenter(svg: SVGSVGElement): CanvasPoint {
+  const viewBox = svg.viewBox.baseVal
+  if (viewBox.width > 0 && viewBox.height > 0) {
+    return {
+      x: viewBox.x + viewBox.width / 2,
+      y: viewBox.y + viewBox.height / 2,
+    }
+  }
+
+  return {
+    x: svg.clientWidth / 2,
+    y: svg.clientHeight / 2,
+  }
 }
 
 function ensureViewportGroup(svg: SVGSVGElement): SVGGElement {
@@ -151,15 +211,19 @@ function bindPanZoomHandlers(
   svgElement.style.cursor = 'grab'
 
   let dragPointerId: number | null = null
-  let lastX = 0
-  let lastY = 0
+  let lastPanPoint: CanvasPoint | null = null
+  let lastCursorPoint: CanvasPoint | null = null
 
   function onWheel(event: WheelEvent) {
     event.preventDefault()
 
-    const rect = svgElement.getBoundingClientRect()
-    const pointX = event.clientX - rect.left
-    const pointY = event.clientY - rect.top
+    const hasReliableClientPoint = !(event.ctrlKey && event.clientX === 0 && event.clientY === 0)
+    const interactionPoint = hasReliableClientPoint
+      ? clientPointToCanvasPoint(svgElement, event.clientX, event.clientY)
+      : lastCursorPoint ?? getCanvasCenter(svgElement)
+    if (hasReliableClientPoint) {
+      lastCursorPoint = interactionPoint
+    }
 
     const current = transformRef.current
     const nextScale = clamp(current.scale * Math.exp(-event.deltaY * 0.002), MIN_SCALE, MAX_SCALE)
@@ -167,12 +231,12 @@ function bindPanZoomHandlers(
       return
     }
 
-    const graphX = (pointX - current.translateX) / current.scale
-    const graphY = (pointY - current.translateY) / current.scale
+    const graphX = (interactionPoint.x - current.translateX) / current.scale
+    const graphY = (interactionPoint.y - current.translateY) / current.scale
     transformRef.current = {
       scale: nextScale,
-      translateX: pointX - graphX * nextScale,
-      translateY: pointY - graphY * nextScale,
+      translateX: interactionPoint.x - graphX * nextScale,
+      translateY: interactionPoint.y - graphY * nextScale,
     }
     applyTransform(viewport, transformRef.current)
   }
@@ -183,21 +247,29 @@ function bindPanZoomHandlers(
     }
 
     dragPointerId = event.pointerId
-    lastX = event.clientX
-    lastY = event.clientY
+    lastPanPoint = clientPointToCanvasPoint(svgElement, event.clientX, event.clientY)
+    lastCursorPoint = lastPanPoint
     svgElement.setPointerCapture(event.pointerId)
     svgElement.style.cursor = 'grabbing'
   }
 
   function onPointerMove(event: PointerEvent) {
+    lastCursorPoint = clientPointToCanvasPoint(svgElement, event.clientX, event.clientY)
+
     if (dragPointerId !== event.pointerId) {
       return
     }
 
-    const deltaX = event.clientX - lastX
-    const deltaY = event.clientY - lastY
-    lastX = event.clientX
-    lastY = event.clientY
+    const currentPanPoint = lastCursorPoint
+    const previousPanPoint = lastPanPoint
+    if (!previousPanPoint) {
+      lastPanPoint = currentPanPoint
+      return
+    }
+
+    const deltaX = currentPanPoint.x - previousPanPoint.x
+    const deltaY = currentPanPoint.y - previousPanPoint.y
+    lastPanPoint = currentPanPoint
 
     transformRef.current = {
       ...transformRef.current,
@@ -213,6 +285,7 @@ function bindPanZoomHandlers(
     }
 
     dragPointerId = null
+    lastPanPoint = null
     svgElement.style.cursor = 'grab'
     if (svgElement.hasPointerCapture(event.pointerId)) {
       svgElement.releasePointerCapture(event.pointerId)
