@@ -88,6 +88,7 @@ function VersePage() {
   const [navTransitionLoading, setNavTransitionLoading] = useState(false)
   const [prevRef, setPrevRef] = useState<VerseRef | null>(null)
   const [nextRef, setNextRef] = useState<VerseRef | null>(null)
+  const [highlightTokens, setHighlightTokens] = useState<string[]>([])
   const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
   const isKnownRef = useMemo(() => {
     if (!ref || !nav) {
@@ -179,6 +180,10 @@ function VersePage() {
       canceled = true
     }
   }, [ensureChapters, ensureVerses, isKnownRef, nav, ref])
+
+  useEffect(() => {
+    setHighlightTokens([])
+  }, [ref?.book, ref?.chapter3, ref?.verse3])
 
   useEffect(() => {
     if (!ref || isKnownRef === false) {
@@ -333,6 +338,11 @@ function VersePage() {
               <main className="verse-page__split">
                 <section aria-label="Graph" className="verse-page__panel verse-page__panel--graph">
                   <h2>Graph</h2>
+                  {highlightTokens.length > 0 ? (
+                    <p className="verse-page__error-detail">
+                      Highlighted: <code>{highlightTokens[0]}</code>
+                    </p>
+                  ) : null}
                   {graphError ? (
                     <>
                       <p role="alert" className="verse-page__panel-alert">
@@ -344,12 +354,19 @@ function VersePage() {
                       </button>
                     </>
                   ) : (
-                    <GraphViewer dot={data.graphDot ?? ''} />
+                    <GraphViewer
+                      dot={data.graphDot ?? ''}
+                      onTokenClick={(token) => setHighlightTokens([token])}
+                    />
                   )}
                 </section>
 
                 <section aria-label="Trace" className="verse-page__panel verse-page__panel--trace">
-                  <TraceViewer traceText={data.traceTxt} highlightTokens={[]} />
+                  <TraceViewer
+                    traceText={data.traceTxt}
+                    highlightTokens={highlightTokens}
+                    onClearHighlight={() => setHighlightTokens([])}
+                  />
                 </section>
               </main>
             </>
