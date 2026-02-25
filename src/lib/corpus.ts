@@ -1,5 +1,5 @@
-import { fetchJson, fetchText } from './fetcher'
 import { LruCache } from './lru'
+import { loadGraphDot, loadManifest, loadTraceJson, loadTraceTxt } from './source'
 import type { Manifest, VerseArtifacts, VerseRef } from './types'
 
 export const CORPUS_BASE_URL =
@@ -38,7 +38,7 @@ export function graphDotUrl(ref: VerseRef): string {
 }
 
 export async function fetchManifest(): Promise<Manifest> {
-  return fetchJson<Manifest>(manifestUrl())
+  return loadManifest()
 }
 
 export async function fetchVerseArtifacts(
@@ -51,9 +51,9 @@ export async function fetchVerseArtifacts(
   }
 
   const [traceJson, traceTxt, graphDot] = await Promise.all([
-    fetchJson(traceJsonUrl(ref)),
-    fetchText(traceTxtUrl(ref)),
-    fetchText(graphDotUrl(ref)),
+    loadTraceJson(ref),
+    loadTraceTxt(ref),
+    loadGraphDot(ref),
   ])
 
   const artifacts: VerseArtifacts = {

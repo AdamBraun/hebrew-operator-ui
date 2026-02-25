@@ -15,6 +15,12 @@ import {
   fetchVerses,
 } from '../lib'
 import { buildNavModel, type NavModel } from '../lib/navModel'
+import {
+  fixtureChaptersForBook,
+  fixtureVersesForChapter,
+  initialNavModelForSource,
+  isFixtureSourceEnabled,
+} from '../lib/source'
 
 type NavState = {
   nav: NavModel | null
@@ -42,6 +48,7 @@ function mergeUniqueSorted(current: string[] | undefined, incoming: string[]): s
 }
 
 export function NavProvider({ children }: NavProviderProps) {
+  const fixtureMode = isFixtureSourceEnabled()
   const [nav, setNav] = useState<NavModel | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -63,6 +70,10 @@ export function NavProvider({ children }: NavProviderProps) {
     const existing = navRef.current?.chaptersByBook[normalizedBook]
     if (existing && existing.length > 0) {
       return existing
+    }
+
+    if (fixtureMode) {
+      return fixtureChaptersForBook(normalizedBook)
     }
 
     const inFlight = chapterRequestsRef.current.get(normalizedBook)
@@ -96,7 +107,7 @@ export function NavProvider({ children }: NavProviderProps) {
 
     chapterRequestsRef.current.set(normalizedBook, request)
     return request
-  }, [])
+  }, [fixtureMode])
 
   const ensureVerses = useCallback(
     async (book: string, chapter3: string) => {
@@ -110,6 +121,10 @@ export function NavProvider({ children }: NavProviderProps) {
         navRef.current?.versesByBookChapter[normalizedBook]?.[normalizedChapter]
       if (existing && existing.length > 0) {
         return existing
+      }
+
+      if (fixtureMode) {
+        return fixtureVersesForChapter(normalizedBook, normalizedChapter)
       }
 
       const key = `${normalizedBook}/${normalizedChapter}`
@@ -155,13 +170,23 @@ export function NavProvider({ children }: NavProviderProps) {
       verseRequestsRef.current.set(key, request)
       return request
     },
-    []
+    [fixtureMode]
   )
 
   useEffect(() => {
     let canceled = false
 
     async function loadBooks() {
+      if (fixtureMode) {
+        const fixtureNav = initialNavModelForSource()
+        if (!canceled) {
+          setNav(fixtureNav)
+          setError(null)
+          setLoading(false)
+        }
+        return
+      }
+
       try {
         const books = await fetchBooks()
         if (canceled) {
@@ -213,7 +238,7 @@ export function NavProvider({ children }: NavProviderProps) {
     return () => {
       canceled = true
     }
-  }, [])
+  }, [fixtureMode])
 
   const value = useMemo(
     () => ({

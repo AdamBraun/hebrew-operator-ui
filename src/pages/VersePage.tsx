@@ -10,13 +10,13 @@ import TracePanel from '../../ui/src/components/TracePanel'
 import { buildTraceIndex } from '../../ui/src/lib/trace/index_trace'
 import type { TraceIndex, TraceJson } from '../../ui/src/lib/trace/types'
 import { buildWordGroups } from '../../ui/src/lib/trace/words'
-import { graphDotUrl, manifestUrl, traceJsonUrl } from '../lib/corpus'
-import { FetchError, fetchJson, fetchText } from '../lib/fetcher'
+import { FetchError } from '../lib/fetcher'
 import { getNextRefTiered, getPrevRefTiered } from '../lib/navWalkTiered'
 import { normalizeVerseRef } from '../lib/ref'
 import { resolveHandleIdFromGraphSelection } from '../lib/graphSelection'
 import { useVerseHotkeys } from '../hooks/useVerseHotkeys'
 import { useNavState } from '../state/nav'
+import { loadGraphDot, loadManifest, loadTraceJson, sourceUrlsForRef } from '../lib/source'
 import type { Manifest } from '../lib/types'
 import type { NavModel } from '../lib/navModel'
 import type { VerseRef } from '../lib/ref'
@@ -207,16 +207,12 @@ function VersePage() {
       setError(null)
       setGraphError(null)
 
-      const urls = {
-        manifest: manifestUrl(),
-        traceJson: traceJsonUrl(currentRef),
-        graphDot: graphDotUrl(currentRef),
-      }
+      const urls = sourceUrlsForRef(currentRef)
 
       const [manifestResult, traceJsonResult, graphDotResult] = await Promise.allSettled([
-        fetchJson<Manifest>(urls.manifest, { cache: 'no-cache' }),
-        fetchJson<TraceJson>(urls.traceJson, { cache: 'no-cache' }),
-        fetchText(urls.graphDot, { cache: 'no-cache' }),
+        loadManifest({ cache: 'no-cache' }),
+        loadTraceJson<TraceJson>(currentRef, { cache: 'no-cache' }),
+        loadGraphDot(currentRef, { cache: 'no-cache' }),
       ])
 
       if (canceled) {
