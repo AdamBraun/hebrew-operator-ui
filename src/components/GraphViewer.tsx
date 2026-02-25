@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { graphviz, type GraphvizRenderer } from 'd3-graphviz'
-import { select } from 'd3-selection'
 
 type GraphViewerProps = {
   dot: string
@@ -21,14 +20,23 @@ const INITIAL_TRANSFORM: GraphTransform = {
   translateY: 0,
 }
 
-function getGraphLabel(element: Element): string {
-  const title = select(element).select('title').text().trim()
+function getGraphIdentifier(element: Element): string {
+  const title = element.querySelector('title')?.textContent?.trim()
   if (title) {
     return title
   }
 
-  const id = element.getAttribute('id')
-  return id?.trim() ?? ''
+  const textLabel = Array.from(element.querySelectorAll('text'))
+    .map((textNode) => textNode.textContent?.trim() ?? '')
+    .filter((chunk) => chunk.length > 0)
+    .join(' ')
+    .trim()
+  if (textLabel) {
+    return textLabel
+  }
+
+  const id = element.getAttribute('id')?.trim()
+  return id && id.length > 0 ? id : 'unknown'
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -64,21 +72,33 @@ function applyTransform(viewport: SVGGElement, transform: GraphTransform) {
   )
 }
 
-function bindGraphClickHandlers(
+function bindDelegatedGraphClickHandler(
   container: HTMLDivElement,
   onNodeClickRef: MutableRefObject<GraphViewerProps['onNodeClick']>,
   onEdgeClickRef: MutableRefObject<GraphViewerProps['onEdgeClick']>
-) {
-  const nodes = select(container).selectAll<SVGGElement, unknown>('g.node')
-  const edges = select(container).selectAll<SVGGElement, unknown>('g.edge')
+): () => void {
+  function onContainerClick(event: MouseEvent) {
+    const clickedElement = event.target
+    if (!(clickedElement instanceof Element)) {
+      return
+    }
 
-  nodes.on('click', function (this: SVGGElement) {
-    onNodeClickRef.current?.(getGraphLabel(this))
-  })
+    const nodeGroup = clickedElement.closest('.node')
+    if (nodeGroup && container.contains(nodeGroup)) {
+      onNodeClickRef.current?.(getGraphIdentifier(nodeGroup))
+      return
+    }
 
-  edges.on('click', function (this: SVGGElement) {
-    onEdgeClickRef.current?.(getGraphLabel(this))
-  })
+    const edgeGroup = clickedElement.closest('.edge')
+    if (edgeGroup && container.contains(edgeGroup)) {
+      onEdgeClickRef.current?.(getGraphIdentifier(edgeGroup))
+    }
+  }
+
+  container.addEventListener('click', onContainerClick)
+  return () => {
+    container.removeEventListener('click', onContainerClick)
+  }
 }
 
 function bindPanZoomHandlers(
@@ -187,6 +207,7 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
   const containerRef = useRef<HTMLDivElement | null>(null)
   const graphvizRef = useRef<GraphvizRenderer | null>(null)
   const panZoomCleanupRef = useRef<(() => void) | null>(null)
+  const clickCleanupRef = useRef<(() => void) | null>(null)
   const renderTokenRef = useRef(0)
   const transformRef = useRef<GraphTransform>(INITIAL_TRANSFORM)
   const onNodeClickRef = useRef<GraphViewerProps['onNodeClick']>(onNodeClick)
@@ -205,6 +226,8 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
 
     panZoomCleanupRef.current?.()
     panZoomCleanupRef.current = null
+    clickCleanupRef.current?.()
+    clickCleanupRef.current = null
 
     if (!hasDot) {
       container.innerHTML = ''
@@ -230,7 +253,11 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
 
       const currentContainer = containerRef.current
       if (currentContainer) {
-        bindGraphClickHandlers(currentContainer, onNodeClickRef, onEdgeClickRef)
+        clickCleanupRef.current = bindDelegatedGraphClickHandler(
+          currentContainer,
+          onNodeClickRef,
+          onEdgeClickRef
+        )
         panZoomCleanupRef.current = bindPanZoomHandlers(currentContainer, transformRef)
       }
       setIsRendering(false)
@@ -250,6 +277,7 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
 
   useEffect(() => {
     return () => {
+      clickCleanupRef.current?.()
       panZoomCleanupRef.current?.()
       graphvizRef.current?.destroy?.()
     }
