@@ -20,6 +20,13 @@ const INITIAL_TRANSFORM: GraphTransform = {
   translateY: 0,
 }
 
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message
+  }
+  return 'Unknown render failure'
+}
+
 function getGraphIdentifier(element: Element): string {
   const title = element.querySelector('title')?.textContent?.trim()
   if (title) {
@@ -208,11 +215,13 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
   const graphvizRef = useRef<GraphvizRenderer | null>(null)
   const panZoomCleanupRef = useRef<(() => void) | null>(null)
   const clickCleanupRef = useRef<(() => void) | null>(null)
-  const renderTokenRef = useRef(0)
+  const renderSeqRef = useRef(0)
   const transformRef = useRef<GraphTransform>(INITIAL_TRANSFORM)
   const onNodeClickRef = useRef<GraphViewerProps['onNodeClick']>(onNodeClick)
   const onEdgeClickRef = useRef<GraphViewerProps['onEdgeClick']>(onEdgeClick)
   const [isRendering, setIsRendering] = useState(false)
+  const [renderError, setRenderError] = useState<string | null>(null)
+  const [showRawDot, setShowRawDot] = useState(false)
   const hasDot = useMemo(() => dot.trim().length > 0, [dot])
 
   onNodeClickRef.current = onNodeClick
@@ -232,22 +241,26 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
     if (!hasDot) {
       container.innerHTML = ''
       setIsRendering(false)
+      setRenderError(null)
+      setShowRawDot(false)
       return
     }
 
     transformRef.current = INITIAL_TRANSFORM
+    setRenderError(null)
+    setShowRawDot(false)
     container.innerHTML = ''
     if (!graphvizRef.current) {
       graphvizRef.current = graphviz(container, { useWorker: false }).zoom(false)
     }
 
-    const token = renderTokenRef.current + 1
-    renderTokenRef.current = token
+    const renderSeq = renderSeqRef.current + 1
+    renderSeqRef.current = renderSeq
     setIsRendering(true)
 
     const renderer = graphvizRef.current
     renderer.on('end.graph-viewer', () => {
-      if (renderTokenRef.current !== token) {
+      if (renderSeqRef.current !== renderSeq) {
         return
       }
 
@@ -262,14 +275,24 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
       }
       setIsRendering(false)
     })
-    renderer.onerror(() => {
-      if (renderTokenRef.current === token) {
+    renderer.onerror((error) => {
+      if (renderSeqRef.current === renderSeq) {
         setIsRendering(false)
+        setRenderError(toErrorMessage(error))
       }
     })
-    renderer.renderDot(dot)
+
+    try {
+      renderer.renderDot(dot)
+    } catch (error) {
+      if (renderSeqRef.current === renderSeq) {
+        setIsRendering(false)
+        setRenderError(toErrorMessage(error))
+      }
+    }
 
     return () => {
+      renderSeqRef.current += 1
       renderer.on('end.graph-viewer', null)
       renderer.onerror(null)
     }
@@ -277,8 +300,12 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
 
   useEffect(() => {
     return () => {
+      renderSeqRef.current += 1
       clickCleanupRef.current?.()
       panZoomCleanupRef.current?.()
+      if (containerRef.current) {
+        containerRef.current.innerHTML = ''
+      }
       graphvizRef.current?.destroy?.()
     }
   }, [])
@@ -287,6 +314,15 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
     <div className={className}>
       {!hasDot ? <p>No graph data available.</p> : null}
       {hasDot && isRendering ? <p>Rendering graph...</p> : null}
+      {hasDot && renderError ? (
+        <div role="alert">
+          <p>Failed to render graph</p>
+          <button type="button" onClick={() => setShowRawDot((open) => !open)}>
+            {showRawDot ? 'Hide raw DOT' : 'Show raw DOT'}
+          </button>
+          {showRawDot ? <pre>{dot}</pre> : null}
+        </div>
+      ) : null}
       <div ref={containerRef} aria-busy={isRendering} />
     </div>
   )
