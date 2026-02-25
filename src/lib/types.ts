@@ -1,4 +1,4 @@
-export type VerseRef = { book: string; chapter3: string; verse3: string }
+export type { VerseRef } from './ref'
 
 export type Manifest = {
   generated_at?: string

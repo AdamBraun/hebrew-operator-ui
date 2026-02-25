@@ -1,23 +1,24 @@
 import { useParams } from 'react-router-dom'
 import { useState } from 'react'
 import AppShell from '../layout/AppShell'
+import { normalizeVerseRef } from '../lib/ref'
 
 function VersePage() {
   const { book, chapter, verse } = useParams()
+  const ref = normalizeVerseRef({ book, chapter, verse })
   const [loading] = useState<boolean>(false)
   const [error] = useState<string | null>(null)
-  const hasInvalidReference = !book || !chapter || !verse
 
   return (
     <AppShell>
       <header style={{ marginBottom: '1rem' }} />
 
-      {hasInvalidReference ? (
+      {!ref ? (
         <p role="alert">Invalid verse reference</p>
       ) : (
         <>
           <h1>
-            {book} {chapter}:{verse}
+            {ref.book} {ref.chapter3}:{ref.verse3}
           </h1>
 
           {loading ? <p>Loading verse...</p> : null}
