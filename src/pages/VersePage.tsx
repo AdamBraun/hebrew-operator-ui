@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppShell from '../layout/AppShell'
 import GraphViewer from '../components/GraphViewer'
+import SidebarNav from '../components/SidebarNav'
 import TraceViewer from '../components/TraceViewer'
 import VerseHeader from '../components/VerseHeader'
 import VerseText from '../components/VerseText'
 import { graphDotUrl, manifestUrl, traceJsonUrl, traceTxtUrl } from '../lib/corpus'
 import { FetchError, fetchJson, fetchText } from '../lib/fetcher'
+import { fetchCorpusIndex } from '../lib'
+import { buildNavModel } from '../lib/navModel'
 import { normalizeVerseRef } from '../lib/ref'
 import type { Manifest } from '../lib/types'
+import type { NavModel } from '../lib/navModel'
+import type { VerseRef } from '../lib/ref'
 import { extractVerseText } from '../lib/verseText'
 import './VersePage.css'
 
@@ -21,6 +26,25 @@ type VerseData = {
   traceJson: any
   traceTxt: string
   graphDot: string | null
+}
+
+function firstAvailableRef(nav: NavModel | null): VerseRef | null {
+  if (!nav || nav.books.length === 0) {
+    return null
+  }
+
+  const book = nav.books[0]
+  const chapter3 = nav.chaptersByBook[book]?.[0]
+  if (!chapter3) {
+    return null
+  }
+
+  const verse3 = nav.versesByBookChapter[book]?.[chapter3]?.[0]
+  if (!verse3) {
+    return null
+  }
+
+  return { book, chapter3, verse3 }
 }
 
 function toLoadError(fileName: string, url: string, error: unknown): LoadError {
@@ -40,20 +64,62 @@ function toLoadError(fileName: string, url: string, error: unknown): LoadError {
 }
 
 function VersePage() {
+  const navigate = useNavigate()
   const { book, chapter, verse } = useParams()
   const ref = useMemo(
     () => normalizeVerseRef({ book, chapter, verse }),
     [book, chapter, verse]
   )
+  const [nav, setNav] = useState<NavModel | null>(null)
+  const [navError, setNavError] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<LoadError | null>(null)
   const [manifest, setManifest] = useState<Manifest | null>(null)
   const [data, setData] = useState<VerseData | null>(null)
   const [graphError, setGraphError] = useState<LoadError | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
+  const isKnownRef = useMemo(() => {
+    if (!ref || !nav) {
+      return null
+    }
+    return Boolean(nav.versesByBookChapter[ref.book]?.[ref.chapter3]?.includes(ref.verse3))
+  }, [nav, ref])
 
   useEffect(() => {
-    if (!ref) {
+    let canceled = false
+
+    async function loadNav() {
+      try {
+        const indexJson = await fetchCorpusIndex()
+        const model = buildNavModel(indexJson)
+
+        if (canceled) {
+          return
+        }
+
+        setNav(model)
+        setNavError(null)
+      } catch (loadError: unknown) {
+        if (canceled) {
+          return
+        }
+
+        const message =
+          loadError instanceof Error ? loadError.message : 'Failed to load corpus index'
+        setNavError(message)
+      }
+    }
+
+    void loadNav()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!ref || isKnownRef === false) {
       setLoading(false)
       setError(null)
       setManifest(null)
@@ -119,7 +185,7 @@ function VersePage() {
     return () => {
       canceled = true
     }
-  }, [ref, retryCount])
+  }, [ref, retryCount, isKnownRef])
 
   const verseText = useMemo(() => {
     if (!data) {
@@ -133,10 +199,39 @@ function VersePage() {
     setRetryCount((count) => count + 1)
   }
 
+  function goToFirstAvailableRef() {
+    if (!fallbackRef) {
+      return
+    }
+    navigate(`/${fallbackRef.book}/${fallbackRef.chapter3}/${fallbackRef.verse3}`)
+  }
+
+  const sidebar = nav ? (
+    <SidebarNav nav={nav} currentRef={ref} />
+  ) : (
+    <div className="verse-page__sidebar-state">
+      <h2>Navigation</h2>
+      <p>{navError ?? 'Loading corpus index...'}</p>
+    </div>
+  )
+
   return (
-    <AppShell>
+    <AppShell sidebar={sidebar}>
       {!ref ? (
         <p role="alert">Invalid verse reference</p>
+      ) : isKnownRef === false ? (
+        <section className="verse-page__error">
+          <p role="alert">Unknown reference</p>
+          {fallbackRef ? (
+            <button type="button" onClick={goToFirstAvailableRef}>
+              Go to first available ref
+            </button>
+          ) : (
+            <p className="verse-page__error-detail">
+              The corpus index did not include any references.
+            </p>
+          )}
+        </section>
       ) : (
         <>
           {loading ? (

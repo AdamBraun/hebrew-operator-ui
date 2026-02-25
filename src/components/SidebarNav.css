@@ -1,0 +1,54 @@
+.sidebar-nav {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+
+.sidebar-nav__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+
+.sidebar-nav__label {
+  font-size: 0.8rem;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sidebar-nav__select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  padding: 0.45rem 0.55rem;
+}
+
+.sidebar-nav__subhead {
+  margin: 0.5rem 0 0.1rem;
+  font-size: 0.95rem;
+}
+
+.sidebar-nav__verses {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 58vh;
+  overflow: auto;
+  padding-right: 0.1rem;
+}
+
+.sidebar-nav__verse {
+  width: 100%;
+  border: 1px solid #d7dde8;
+  border-radius: 6px;
+  padding: 0.35rem 0.55rem;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-nav__verse--active {
+  border-color: #2563eb;
+  background: #dbeafe;
+  font-weight: 600;
+}

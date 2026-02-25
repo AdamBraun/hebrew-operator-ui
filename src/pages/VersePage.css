@@ -4,6 +4,20 @@
   max-width: 760px;
 }
 
+.verse-page__sidebar-state {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.verse-page__sidebar-state h2 {
+  margin: 0;
+}
+
+.verse-page__sidebar-state p {
+  margin: 0;
+  color: #475569;
+}
+
 .verse-page__skeleton {
   background: #eef2f7;
   border-radius: 6px;
