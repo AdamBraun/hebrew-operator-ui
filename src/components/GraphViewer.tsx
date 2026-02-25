@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { graphviz, type GraphvizRenderer } from 'd3-graphviz'
+import './GraphViewer.css'
 
 type GraphViewerProps = {
   dot: string
@@ -21,6 +22,8 @@ const INITIAL_TRANSFORM: GraphTransform = {
 }
 const RENDER_DEBOUNCE_MS = 150
 const LARGE_DOT_WARNING_THRESHOLD = 500_000
+const MIN_SCALE = 0.25
+const MAX_SCALE = 8
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim().length > 0) {
@@ -75,6 +78,42 @@ function applyTransform(viewport: SVGGElement, transform: GraphTransform) {
   )
 }
 
+function computeFitTransform(svg: SVGSVGElement, viewport: SVGGElement): GraphTransform {
+  const currentTransform = viewport.getAttribute('transform')
+  viewport.removeAttribute('transform')
+  const graphBounds = viewport.getBBox()
+  if (currentTransform) {
+    viewport.setAttribute('transform', currentTransform)
+  }
+
+  const viewBox = svg.viewBox.baseVal
+  const canvasWidth = viewBox && viewBox.width > 0 ? viewBox.width : svg.clientWidth
+  const canvasHeight = viewBox && viewBox.height > 0 ? viewBox.height : svg.clientHeight
+
+  if (
+    canvasWidth <= 0 ||
+    canvasHeight <= 0 ||
+    graphBounds.width <= 0 ||
+    graphBounds.height <= 0
+  ) {
+    return INITIAL_TRANSFORM
+  }
+
+  const padding = 0
+  const scaleX = (canvasWidth - padding * 2) / graphBounds.width
+  const scaleY = (canvasHeight - padding * 2) / graphBounds.height
+  const fittedScale = clamp(Math.min(scaleX, scaleY), MIN_SCALE, MAX_SCALE)
+  const scale = fittedScale > 0.98 && fittedScale < 1 ? 1 : fittedScale
+  const graphCenterX = graphBounds.x + graphBounds.width / 2
+  const graphCenterY = graphBounds.y + graphBounds.height / 2
+
+  return {
+    scale,
+    translateX: canvasWidth / 2 - graphCenterX * scale,
+    translateY: canvasHeight / 2 - graphCenterY * scale,
+  }
+}
+
 function bindDelegatedGraphClickHandler(
   container: HTMLDivElement,
   onNodeClickRef: MutableRefObject<GraphViewerProps['onNodeClick']>,
@@ -106,7 +145,9 @@ function bindDelegatedGraphClickHandler(
 
 function bindPanZoomHandlers(
   container: HTMLDivElement,
-  transformRef: MutableRefObject<GraphTransform>
+  transformRef: MutableRefObject<GraphTransform>,
+  svgRef: MutableRefObject<SVGSVGElement | null>,
+  viewportRef: MutableRefObject<SVGGElement | null>
 ): (() => void) | null {
   const svg = container.querySelector('svg')
   if (!(svg instanceof SVGSVGElement)) {
@@ -125,6 +166,8 @@ function bindPanZoomHandlers(
   svgElement.style.overflow = 'hidden'
 
   const viewport = ensureViewportGroup(svgElement)
+  svgRef.current = svgElement
+  viewportRef.current = viewport
   applyTransform(viewport, transformRef.current)
 
   svgElement.style.touchAction = 'none'
@@ -142,7 +185,7 @@ function bindPanZoomHandlers(
     const pointY = event.clientY - rect.top
 
     const current = transformRef.current
-    const nextScale = clamp(current.scale * Math.exp(-event.deltaY * 0.002), 0.25, 8)
+    const nextScale = clamp(current.scale * Math.exp(-event.deltaY * 0.002), MIN_SCALE, MAX_SCALE)
     if (nextScale === current.scale) {
       return
     }
@@ -214,6 +257,12 @@ function bindPanZoomHandlers(
     svgElement.style.cursor = ''
     svgElement.style.touchAction = ''
     svgElement.style.overflow = ''
+    if (svgRef.current === svgElement) {
+      svgRef.current = null
+    }
+    if (viewportRef.current === viewport) {
+      viewportRef.current = null
+    }
   }
 }
 
@@ -224,6 +273,8 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
   const clickCleanupRef = useRef<(() => void) | null>(null)
   const renderSeqRef = useRef(0)
   const transformRef = useRef<GraphTransform>(INITIAL_TRANSFORM)
+  const svgRef = useRef<SVGSVGElement | null>(null)
+  const viewportRef = useRef<SVGGElement | null>(null)
   const onNodeClickRef = useRef<GraphViewerProps['onNodeClick']>(onNodeClick)
   const onEdgeClickRef = useRef<GraphViewerProps['onEdgeClick']>(onEdgeClick)
   const [isRendering, setIsRendering] = useState(false)
@@ -248,6 +299,8 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
     panZoomCleanupRef.current = null
     clickCleanupRef.current?.()
     clickCleanupRef.current = null
+    svgRef.current = null
+    viewportRef.current = null
 
     if (!hasDot) {
       container.innerHTML = ''
@@ -282,7 +335,12 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
           onNodeClickRef,
           onEdgeClickRef
         )
-        panZoomCleanupRef.current = bindPanZoomHandlers(currentContainer, transformRef)
+        panZoomCleanupRef.current = bindPanZoomHandlers(
+          currentContainer,
+          transformRef,
+          svgRef,
+          viewportRef
+        )
       }
       setIsRendering(false)
     })
@@ -328,38 +386,54 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
     }
   }, [])
 
+  function resetView() {
+    transformRef.current = INITIAL_TRANSFORM
+    const viewport = viewportRef.current
+    if (viewport) {
+      applyTransform(viewport, transformRef.current)
+    }
+  }
+
+  function fitToScreen() {
+    const svg = svgRef.current
+    const viewport = viewportRef.current
+    if (!svg || !viewport) {
+      return
+    }
+
+    transformRef.current = computeFitTransform(svg, viewport)
+    applyTransform(viewport, transformRef.current)
+  }
+
   return (
-    <div
-      className={className}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        minHeight: 0,
-      }}
-    >
-      {!hasDot ? <p>No graph data available.</p> : null}
-      {hasDot && isRendering ? <p>Rendering graph...</p> : null}
-      {hasDot && showLargeDotWarning ? <p>Large graph; rendering may be slow.</p> : null}
+    <div className={['graph-viewer', className].filter(Boolean).join(' ')}>
+      <div className="graph-viewer__toolbar">
+        <button type="button" onClick={resetView} disabled={!hasDot || isRendering}>
+          Reset view
+        </button>
+        <button type="button" onClick={fitToScreen} disabled={!hasDot || isRendering}>
+          Fit to screen
+        </button>
+      </div>
+
+      {!hasDot ? <p className="graph-viewer__notice">No graph data available.</p> : null}
+      {hasDot && showLargeDotWarning ? (
+        <p className="graph-viewer__notice">Large graph; rendering may be slow.</p>
+      ) : null}
       {hasDot && renderError ? (
-        <div role="alert">
+        <div role="alert" className="graph-viewer__error">
           <p>Failed to render graph</p>
           <button type="button" onClick={() => setShowRawDot((open) => !open)}>
             {showRawDot ? 'Hide raw DOT' : 'Show raw DOT'}
           </button>
-          {showRawDot ? <pre>{dot}</pre> : null}
+          {showRawDot ? <pre className="graph-viewer__dot">{dot}</pre> : null}
         </div>
       ) : null}
-      <div
-        ref={containerRef}
-        aria-busy={isRendering}
-        style={{
-          flex: 1,
-          minHeight: 0,
-          width: '100%',
-          overflow: 'hidden',
-        }}
-      />
+
+      <div className="graph-viewer__canvas-wrap">
+        <div ref={containerRef} className="graph-viewer__canvas" aria-busy={isRendering} />
+        {hasDot && isRendering ? <div className="graph-viewer__overlay">Rendering...</div> : null}
+      </div>
     </div>
   )
 }
