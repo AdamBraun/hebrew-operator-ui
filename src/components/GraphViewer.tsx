@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { graphviz, type GraphvizRenderer } from 'd3-graphviz'
+import { extractGraphTokenFromEvent } from '../lib/graphToken'
 import './GraphViewer.css'
 
 type GraphViewerProps = {
   dot: string
-  onNodeClick?: (nodeIdOrLabel: string) => void
-  onEdgeClick?: (edgeIdOrLabel: string) => void
+  onTokenClick?: (token: string) => void
   className?: string
 }
 
@@ -30,25 +30,6 @@ function toErrorMessage(error: unknown): string {
     return error.message
   }
   return 'Unknown render failure'
-}
-
-function getGraphIdentifier(element: Element): string {
-  const title = element.querySelector('title')?.textContent?.trim()
-  if (title) {
-    return title
-  }
-
-  const textLabel = Array.from(element.querySelectorAll('text'))
-    .map((textNode) => textNode.textContent?.trim() ?? '')
-    .filter((chunk) => chunk.length > 0)
-    .join(' ')
-    .trim()
-  if (textLabel) {
-    return textLabel
-  }
-
-  const id = element.getAttribute('id')?.trim()
-  return id && id.length > 0 ? id : 'unknown'
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -116,25 +97,14 @@ function computeFitTransform(svg: SVGSVGElement, viewport: SVGGElement): GraphTr
 
 function bindDelegatedGraphClickHandler(
   container: HTMLDivElement,
-  onNodeClickRef: MutableRefObject<GraphViewerProps['onNodeClick']>,
-  onEdgeClickRef: MutableRefObject<GraphViewerProps['onEdgeClick']>
+  onTokenClickRef: MutableRefObject<GraphViewerProps['onTokenClick']>
 ): () => void {
   function onContainerClick(event: MouseEvent) {
-    const clickedElement = event.target
-    if (!(clickedElement instanceof Element)) {
+    const tokenResult = extractGraphTokenFromEvent(event)
+    if (!tokenResult) {
       return
     }
-
-    const nodeGroup = clickedElement.closest('.node')
-    if (nodeGroup && container.contains(nodeGroup)) {
-      onNodeClickRef.current?.(getGraphIdentifier(nodeGroup))
-      return
-    }
-
-    const edgeGroup = clickedElement.closest('.edge')
-    if (edgeGroup && container.contains(edgeGroup)) {
-      onEdgeClickRef.current?.(getGraphIdentifier(edgeGroup))
-    }
+    onTokenClickRef.current?.(tokenResult.token)
   }
 
   container.addEventListener('click', onContainerClick)
@@ -266,7 +236,7 @@ function bindPanZoomHandlers(
   }
 }
 
-function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerProps) {
+function GraphViewer({ dot, onTokenClick, className }: GraphViewerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const graphvizRef = useRef<GraphvizRenderer | null>(null)
   const panZoomCleanupRef = useRef<(() => void) | null>(null)
@@ -275,8 +245,7 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
   const transformRef = useRef<GraphTransform>(INITIAL_TRANSFORM)
   const svgRef = useRef<SVGSVGElement | null>(null)
   const viewportRef = useRef<SVGGElement | null>(null)
-  const onNodeClickRef = useRef<GraphViewerProps['onNodeClick']>(onNodeClick)
-  const onEdgeClickRef = useRef<GraphViewerProps['onEdgeClick']>(onEdgeClick)
+  const onTokenClickRef = useRef<GraphViewerProps['onTokenClick']>(onTokenClick)
   const [isRendering, setIsRendering] = useState(false)
   const [renderError, setRenderError] = useState<string | null>(null)
   const [showRawDot, setShowRawDot] = useState(false)
@@ -286,8 +255,20 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
     [dot]
   )
 
-  onNodeClickRef.current = onNodeClick
-  onEdgeClickRef.current = onEdgeClick
+  onTokenClickRef.current = onTokenClick
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) {
+      return
+    }
+
+    clickCleanupRef.current = bindDelegatedGraphClickHandler(container, onTokenClickRef)
+    return () => {
+      clickCleanupRef.current?.()
+      clickCleanupRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
     const container = containerRef.current
@@ -297,8 +278,6 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
 
     panZoomCleanupRef.current?.()
     panZoomCleanupRef.current = null
-    clickCleanupRef.current?.()
-    clickCleanupRef.current = null
     svgRef.current = null
     viewportRef.current = null
 
@@ -330,11 +309,6 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
 
       const currentContainer = containerRef.current
       if (currentContainer) {
-        clickCleanupRef.current = bindDelegatedGraphClickHandler(
-          currentContainer,
-          onNodeClickRef,
-          onEdgeClickRef
-        )
         panZoomCleanupRef.current = bindPanZoomHandlers(
           currentContainer,
           transformRef,

@@ -32,8 +32,7 @@ const INVALID_DOT = `digraph G {
 
 function DevGraphPage() {
   const [sample, setSample] = useState<SampleKey>('small')
-  const [lastNode, setLastNode] = useState<string | null>(null)
-  const [lastEdge, setLastEdge] = useState<string | null>(null)
+  const [lastToken, setLastToken] = useState<string | null>(null)
 
   const dot = useMemo(() => {
     if (sample === 'medium') {
@@ -70,7 +69,7 @@ function DevGraphPage() {
         Active sample: <strong>{sample}</strong>
       </p>
       <p style={{ marginTop: 0 }}>
-        Last node click: {lastNode ?? 'none'} | Last edge click: {lastEdge ?? 'none'}
+        Last token click: {lastToken ?? 'none'}
       </p>
 
       <div
@@ -82,7 +81,13 @@ function DevGraphPage() {
           minHeight: 420,
         }}
       >
-        <GraphViewer dot={dot} onNodeClick={setLastNode} onEdgeClick={setLastEdge} />
+        <GraphViewer
+          dot={dot}
+          onTokenClick={(token) => {
+            setLastToken(token)
+            console.log('Graph token click:', token)
+          }}
+        />
       </div>
     </AppShell>
   )
