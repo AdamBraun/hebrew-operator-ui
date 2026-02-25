@@ -209,6 +209,8 @@ function bindPanZoomHandlers(
 
   svgElement.style.touchAction = 'none'
   svgElement.style.cursor = 'grab'
+  svgElement.style.userSelect = 'none'
+  svgElement.style.setProperty('-webkit-user-select', 'none')
 
   let dragPointerId: number | null = null
   let lastPanPoint: CanvasPoint | null = null
@@ -246,6 +248,7 @@ function bindPanZoomHandlers(
       return
     }
 
+    event.preventDefault()
     dragPointerId = event.pointerId
     lastPanPoint = clientPointToCanvasPoint(svgElement, event.clientX, event.clientY)
     lastCursorPoint = lastPanPoint
@@ -306,6 +309,8 @@ function bindPanZoomHandlers(
     svgElement.removeEventListener('pointercancel', finishDrag)
     svgElement.style.cursor = ''
     svgElement.style.touchAction = ''
+    svgElement.style.userSelect = ''
+    svgElement.style.removeProperty('-webkit-user-select')
     svgElement.style.overflow = ''
     if (svgRef.current === svgElement) {
       svgRef.current = null
