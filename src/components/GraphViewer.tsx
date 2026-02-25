@@ -19,6 +19,8 @@ const INITIAL_TRANSFORM: GraphTransform = {
   translateX: 0,
   translateY: 0,
 }
+const RENDER_DEBOUNCE_MS = 150
+const LARGE_DOT_WARNING_THRESHOLD = 500_000
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim().length > 0) {
@@ -228,6 +230,10 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
   const [renderError, setRenderError] = useState<string | null>(null)
   const [showRawDot, setShowRawDot] = useState(false)
   const hasDot = useMemo(() => dot.trim().length > 0, [dot])
+  const showLargeDotWarning = useMemo(
+    () => dot.length > LARGE_DOT_WARNING_THRESHOLD,
+    [dot]
+  )
 
   onNodeClickRef.current = onNodeClick
   onEdgeClickRef.current = onEdgeClick
@@ -287,16 +293,23 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
       }
     })
 
-    try {
-      renderer.renderDot(dot)
-    } catch (error) {
-      if (renderSeqRef.current === renderSeq) {
-        setIsRendering(false)
-        setRenderError(toErrorMessage(error))
+    const debounceTimer = window.setTimeout(() => {
+      if (renderSeqRef.current !== renderSeq) {
+        return
       }
-    }
+
+      try {
+        renderer.renderDot(dot)
+      } catch (error) {
+        if (renderSeqRef.current === renderSeq) {
+          setIsRendering(false)
+          setRenderError(toErrorMessage(error))
+        }
+      }
+    }, RENDER_DEBOUNCE_MS)
 
     return () => {
+      window.clearTimeout(debounceTimer)
       renderSeqRef.current += 1
       renderer.on('end.graph-viewer', null)
       renderer.onerror(null)
@@ -327,6 +340,7 @@ function GraphViewer({ dot, onNodeClick, onEdgeClick, className }: GraphViewerPr
     >
       {!hasDot ? <p>No graph data available.</p> : null}
       {hasDot && isRendering ? <p>Rendering graph...</p> : null}
+      {hasDot && showLargeDotWarning ? <p>Large graph; rendering may be slow.</p> : null}
       {hasDot && renderError ? (
         <div role="alert">
           <p>Failed to render graph</p>
