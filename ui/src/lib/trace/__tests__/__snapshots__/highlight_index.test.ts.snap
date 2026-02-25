@@ -1,0 +1,24 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildTraceIndex highlight determinism > builds stable refs and each highlighted event explicitly references the handle id 1`] = `
+{
+  "ב:2:4": [
+    8,
+  ],
+  "ר:2:2": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+  ],
+  "ת:7:8": [
+    28,
+    30,
+    31,
+    33,
+  ],
+}
+`;
