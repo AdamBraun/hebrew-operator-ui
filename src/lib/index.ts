@@ -4,6 +4,7 @@ import { fetchJson } from './fetcher'
 const booksPromiseByBase = new Map<string, Promise<string[]>>()
 const chaptersPromiseByPath = new Map<string, Promise<string[]>>()
 const versesPromiseByPath = new Map<string, Promise<string[]>>()
+const legacyIndexPromiseByBase = new Map<string, Promise<unknown>>()
 
 function baseUrl(): string {
   return CORPUS_BASE_URL.replace(/\/+$/, '')
@@ -20,6 +21,10 @@ function normalizeChapter(chapter3: string): string {
 function refsUrl(...parts: string[]): string {
   const safeParts = parts.map((part) => encodeURIComponent(part))
   return `${baseUrl()}/refs/${safeParts.join('/')}`
+}
+
+function legacyIndexUrl(): string {
+  return refsUrl('index.json')
 }
 
 function parseStringList(
@@ -58,6 +63,23 @@ export function fetchBooks(): Promise<string[]> {
   booksPromiseByBase.set(key, promise)
   return promise.catch((error: unknown) => {
     booksPromiseByBase.delete(key)
+    throw error
+  })
+}
+
+export function fetchLegacyCorpusIndex(): Promise<unknown> {
+  const key = baseUrl()
+  const cached = legacyIndexPromiseByBase.get(key)
+  if (cached) {
+    return cached
+  }
+
+  const url = legacyIndexUrl()
+  const promise = fetchJson<unknown>(url)
+
+  legacyIndexPromiseByBase.set(key, promise)
+  return promise.catch((error: unknown) => {
+    legacyIndexPromiseByBase.delete(key)
     throw error
   })
 }

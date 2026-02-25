@@ -8,8 +8,13 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { fetchBooks, fetchChapters, fetchVerses } from '../lib'
-import type { NavModel } from '../lib/navModel'
+import {
+  fetchBooks,
+  fetchChapters,
+  fetchLegacyCorpusIndex,
+  fetchVerses,
+} from '../lib'
+import { buildNavModel, type NavModel } from '../lib/navModel'
 
 type NavState = {
   nav: NavModel | null
@@ -170,13 +175,32 @@ export function NavProvider({ children }: NavProviderProps) {
         })
         setError(null)
       } catch (loadError: unknown) {
-        if (canceled) {
-          return
-        }
+        try {
+          const legacyIndex = await fetchLegacyCorpusIndex()
+          const model = buildNavModel(legacyIndex)
 
-        const message =
-          loadError instanceof Error ? loadError.message : 'Failed to load navigation books'
-        setError(message)
+          if (canceled) {
+            return
+          }
+
+          setNav(model)
+          setError(null)
+        } catch (fallbackError: unknown) {
+          if (canceled) {
+            return
+          }
+
+          const tieredMessage =
+            loadError instanceof Error ? loadError.message : 'unknown tiered fetch error'
+          const legacyMessage =
+            fallbackError instanceof Error
+              ? fallbackError.message
+              : 'unknown legacy fetch error'
+
+          setError(
+            `Failed to load navigation (tiered + legacy). Tiered: ${tieredMessage}. Legacy: ${legacyMessage}`
+          )
+        }
       } finally {
         if (!canceled) {
           setLoading(false)
