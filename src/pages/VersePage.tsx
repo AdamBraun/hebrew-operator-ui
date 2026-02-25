@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import AppShell from '../layout/AppShell'
 import TraceViewer from '../components/TraceViewer'
+import VerseHeader from '../components/VerseHeader'
 import VerseText from '../components/VerseText'
 import { fetchManifest, fetchVerseArtifacts } from '../lib/corpus'
 import { FetchError } from '../lib/fetcher'
@@ -93,8 +94,6 @@ function VersePage() {
 
   return (
     <AppShell>
-      <header style={{ marginBottom: '1rem' }} />
-
       {!ref ? (
         <p role="alert">Invalid verse reference</p>
       ) : (
@@ -110,10 +109,8 @@ function VersePage() {
             </section>
           ) : artifacts && manifest ? (
             <>
+              <VerseHeader verseRef={ref} manifest={manifest} />
               <VerseText text={verseText.text} />
-              <h1>
-                {ref.book} {ref.chapter3}:{ref.verse3}
-              </h1>
 
               <main
                 style={{
