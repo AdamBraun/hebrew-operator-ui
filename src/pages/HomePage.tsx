@@ -1,5 +1,6 @@
 import AppShell from '../layout/AppShell'
 import { Link } from 'react-router-dom'
+import CorpusSmokeTest from '../dev/CorpusSmokeTest'
 
 function HomePage() {
   return (
@@ -26,6 +27,7 @@ function HomePage() {
           <Link to="/psalms/023/001">Psalms 023:001</Link>
         </li>
       </ul>
+      {import.meta.env.DEV && <CorpusSmokeTest />}
     </AppShell>
   )
 }
