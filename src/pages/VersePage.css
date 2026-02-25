@@ -4,6 +4,17 @@
   max-width: 760px;
 }
 
+.verse-page__pager {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.verse-page__pager button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .verse-page__sidebar-state {
   display: grid;
   gap: 0.4rem;

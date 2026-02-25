@@ -5,11 +5,13 @@ import GraphViewer from '../components/GraphViewer'
 import SidebarNav from '../components/SidebarNav'
 import TraceViewer from '../components/TraceViewer'
 import VerseHeader from '../components/VerseHeader'
+import VersePager from '../components/VersePager'
 import VerseText from '../components/VerseText'
 import { graphDotUrl, manifestUrl, traceJsonUrl, traceTxtUrl } from '../lib/corpus'
 import { FetchError, fetchJson, fetchText } from '../lib/fetcher'
 import { fetchCorpusIndex } from '../lib'
 import { buildNavModel } from '../lib/navModel'
+import { getNextRef, getPrevRef } from '../lib/navWalk'
 import { normalizeVerseRef } from '../lib/ref'
 import type { Manifest } from '../lib/types'
 import type { NavModel } from '../lib/navModel'
@@ -85,6 +87,18 @@ function VersePage() {
     }
     return Boolean(nav.versesByBookChapter[ref.book]?.[ref.chapter3]?.includes(ref.verse3))
   }, [nav, ref])
+  const prevRef = useMemo(() => {
+    if (!nav || !ref || isKnownRef !== true) {
+      return null
+    }
+    return getPrevRef(nav, ref)
+  }, [nav, ref, isKnownRef])
+  const nextRef = useMemo(() => {
+    if (!nav || !ref || isKnownRef !== true) {
+      return null
+    }
+    return getNextRef(nav, ref)
+  }, [nav, ref, isKnownRef])
 
   useEffect(() => {
     let canceled = false
@@ -254,6 +268,7 @@ function VersePage() {
             </section>
           ) : data && manifest ? (
             <>
+              <VersePager prevRef={prevRef} nextRef={nextRef} />
               <VerseHeader verseRef={ref} manifest={manifest} />
               <VerseText text={verseText.text} />
 
