@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { normalizeToken } from '../lib/matchTokens'
 import './TraceViewer.css'
 
 type TraceViewerProps = {
@@ -11,12 +12,12 @@ function splitTraceLines(traceText: string): string[] {
   return traceText.split('\n')
 }
 
-function hasHighlight(line: string, highlightTokens: string[]): boolean {
-  if (highlightTokens.length === 0) {
+function hasHighlight(line: string, matchCandidates: string[]): boolean {
+  if (matchCandidates.length === 0) {
     return false
   }
 
-  return highlightTokens.some((token) => token.length > 0 && line.includes(token))
+  return matchCandidates.some((token) => token.length > 0 && line.includes(token))
 }
 
 function TraceViewer({ traceText, highlightTokens, onClearHighlight }: TraceViewerProps) {
@@ -25,9 +26,22 @@ function TraceViewer({ traceText, highlightTokens, onClearHighlight }: TraceView
   const previousHasTokensRef = useRef(false)
   const lines = useMemo(() => splitTraceLines(traceText), [traceText])
   const tokenKey = useMemo(() => JSON.stringify(highlightTokens), [highlightTokens])
+  const matchCandidates = useMemo(() => {
+    const mergedCandidates: string[] = []
+
+    for (const token of highlightTokens) {
+      for (const candidate of normalizeToken(token)) {
+        if (!mergedCandidates.includes(candidate)) {
+          mergedCandidates.push(candidate)
+        }
+      }
+    }
+
+    return mergedCandidates
+  }, [highlightTokens])
   const lineHighlights = useMemo(
-    () => lines.map((line) => hasHighlight(line, highlightTokens)),
-    [highlightTokens, lines]
+    () => lines.map((line) => hasHighlight(line, matchCandidates)),
+    [lines, matchCandidates]
   )
   const firstMatchIndex = useMemo(
     () => lineHighlights.findIndex((matches) => matches),
