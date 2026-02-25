@@ -13,6 +13,7 @@ import { fetchCorpusIndex } from '../lib'
 import { buildNavModel } from '../lib/navModel'
 import { getNextRef, getPrevRef } from '../lib/navWalk'
 import { normalizeVerseRef } from '../lib/ref'
+import { useVerseHotkeys } from '../hooks/useVerseHotkeys'
 import type { Manifest } from '../lib/types'
 import type { NavModel } from '../lib/navModel'
 import type { VerseRef } from '../lib/ref'
@@ -99,6 +100,18 @@ function VersePage() {
     }
     return getNextRef(nav, ref)
   }, [nav, ref, isKnownRef])
+  const goPrev = useMemo(
+    () =>
+      prevRef ? () => navigate(`/${prevRef.book}/${prevRef.chapter3}/${prevRef.verse3}`) : null,
+    [navigate, prevRef]
+  )
+  const goNext = useMemo(
+    () =>
+      nextRef ? () => navigate(`/${nextRef.book}/${nextRef.chapter3}/${nextRef.verse3}`) : null,
+    [navigate, nextRef]
+  )
+
+  useVerseHotkeys({ onPrev: goPrev, onNext: goNext })
 
   useEffect(() => {
     let canceled = false
