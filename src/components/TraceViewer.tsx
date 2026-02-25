@@ -1,73 +1,59 @@
-import { useEffect, useState } from 'react'
+import './TraceViewer.css'
 
 type TraceViewerProps = {
-  text: string
+  traceText: string
+  highlightTokens: string[]
+  onClearHighlight?: () => void
 }
 
-function TraceViewer({ text }: TraceViewerProps) {
-  const [copied, setCopied] = useState(false)
+function splitTraceLines(traceText: string): string[] {
+  return traceText.split('\n')
+}
 
-  useEffect(() => {
-    if (!copied) {
-      return
-    }
-
-    const timer = setTimeout(() => setCopied(false), 1200)
-    return () => clearTimeout(timer)
-  }, [copied])
-
-  async function copyTrace() {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-    } catch {
-      setCopied(false)
-    }
+function hasHighlight(line: string, highlightTokens: string[]): boolean {
+  if (highlightTokens.length === 0) {
+    return false
   }
 
+  return highlightTokens.some((token) => token.length > 0 && line.includes(token))
+}
+
+function TraceViewer({ traceText, highlightTokens, onClearHighlight }: TraceViewerProps) {
+  const lines = splitTraceLines(traceText)
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        minWidth: 0,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '0.5rem',
-        }}
-      >
-        <h2 style={{ margin: 0 }}>Trace</h2>
-        <button type="button" onClick={copyTrace}>
-          Copy trace
-        </button>
+    <div className="trace-viewer">
+      <div className="trace-viewer__header">
+        <h2 className="trace-viewer__title">Trace</h2>
+        {onClearHighlight ? (
+          <button type="button" onClick={onClearHighlight}>
+            Clear highlight
+          </button>
+        ) : null}
       </div>
 
-      {copied ? <p style={{ margin: '0 0 0.5rem' }}>Copied</p> : null}
+      <div className="trace-viewer__scroll" role="region" aria-label="Trace lines">
+        {lines.map((line, index) => {
+          const highlighted = hasHighlight(line, highlightTokens)
 
-      <pre
-        style={{
-          margin: 0,
-          whiteSpace: 'pre',
-          overflowX: 'auto',
-          overflowY: 'auto',
-          flex: 1,
-          maxWidth: '100%',
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-          fontSize: '0.85rem',
-          border: '1px solid #e2e8f0',
-          borderRadius: '6px',
-          padding: '0.75rem',
-          background: '#f8fafc',
-        }}
-      >
-        {text}
-      </pre>
+          return (
+            <div
+              key={index}
+              className={[
+                'trace-viewer__line',
+                highlighted ? 'trace-viewer__line--highlight' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              <span className="trace-viewer__line-number" aria-hidden="true">
+                {index + 1}
+              </span>
+              <span className="trace-viewer__line-text">{line}</span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

@@ -349,7 +349,7 @@ function VersePage() {
                 </section>
 
                 <section aria-label="Trace" className="verse-page__panel verse-page__panel--trace">
-                  <TraceViewer text={data.traceTxt} />
+                  <TraceViewer traceText={data.traceTxt} highlightTokens={[]} />
                 </section>
               </main>
             </>
