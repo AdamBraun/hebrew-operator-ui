@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { extractGraphTokenFromEvent } from './graphToken'
+import {
+  extractGraphMatchTokensFromEvent,
+  extractGraphTokenFromEvent,
+} from './graphToken'
 
 class FixtureElement {
   tagName: string
@@ -7,6 +10,7 @@ class FixtureElement {
   textContent: string | null = null
   parentElement: FixtureElement | null = null
   children: FixtureElement[] = []
+  ownerDocument: unknown = null
 
   constructor(tagName: string, options?: { className?: string; textContent?: string }) {
     this.tagName = tagName
@@ -70,8 +74,8 @@ function buildNodeFixture(options: {
   return { svg, group, shape }
 }
 
-function clickEvent(target: unknown): MouseEvent {
-  return { target } as MouseEvent
+function clickEvent(target: unknown, extras: Partial<MouseEvent> = {}): MouseEvent {
+  return { target, ...extras } as MouseEvent
 }
 
 describe('extractGraphTokenFromEvent', () => {
@@ -130,5 +134,65 @@ describe('extractGraphTokenFromEvent', () => {
     })
 
     expect(extractGraphTokenFromEvent(clickEvent(shape))).toBeNull()
+  })
+
+  it('resolves token via composedPath fallback when target is not a node descendant', () => {
+    const { shape, svg } = buildNodeFixture({
+      className: 'node',
+      titleText: 'via-path',
+    })
+
+    const event = clickEvent(
+      svg,
+      {
+        composedPath: () => [svg, shape],
+      } as unknown as Partial<MouseEvent>
+    )
+
+    expect(extractGraphTokenFromEvent(event)).toEqual({
+      token: 'via-path',
+      source: 'title',
+    })
+  })
+
+  it('resolves token via elementFromPoint fallback', () => {
+    const { shape, svg } = buildNodeFixture({
+      className: 'node',
+      titleText: 'via-point',
+    })
+
+    svg.ownerDocument = {
+      elementFromPoint: () => shape,
+    }
+
+    const event = clickEvent(svg, {
+      clientX: 10,
+      clientY: 20,
+    })
+
+    expect(extractGraphTokenFromEvent(event)).toEqual({
+      token: 'via-point',
+      source: 'title',
+    })
+  })
+
+  it('returns both title and label match tokens when both are present', () => {
+    const { shape } = buildNodeFixture({
+      className: 'node',
+      titleText: 'Th12',
+      labelText: 'TH 12',
+    })
+
+    expect(extractGraphMatchTokensFromEvent(clickEvent(shape))).toEqual(['Th12', 'TH 12'])
+  })
+
+  it('deduplicates match tokens when title and label are equivalent after normalization', () => {
+    const { shape } = buildNodeFixture({
+      className: 'node',
+      titleText: '  \"Alpha   Beta\" ',
+      labelText: 'Alpha Beta',
+    })
+
+    expect(extractGraphMatchTokensFromEvent(clickEvent(shape))).toEqual(['Alpha Beta'])
   })
 })

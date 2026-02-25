@@ -356,7 +356,11 @@ function VersePage() {
                   ) : (
                     <GraphViewer
                       dot={data.graphDot ?? ''}
-                      onTokenClick={(token) => setHighlightTokens([token])}
+                      onTokenClick={(token, matchTokens) =>
+                        setHighlightTokens(
+                          matchTokens && matchTokens.length > 0 ? matchTokens : [token]
+                        )
+                      }
                     />
                   )}
                 </section>

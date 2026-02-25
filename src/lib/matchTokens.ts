@@ -28,6 +28,15 @@ function compactWhitespace(token: string): string {
   return token.replace(/\s+/g, ' ').trim()
 }
 
+function splitAlphaNumericTail(token: string): { prefix: string; suffix: string } | null {
+  const match = token.match(/^([A-Za-z]{1,12})(\d{1,12})$/)
+  if (!match) {
+    return null
+  }
+
+  return { prefix: match[1], suffix: match[2] }
+}
+
 function pushUniqueCandidate(candidates: string[], candidate: string) {
   const trimmed = candidate.trim()
   if (trimmed.length === 0 || candidates.includes(trimmed)) {
@@ -56,6 +65,17 @@ export function normalizeToken(token: string): string[] {
   }
   if (/\s/.test(segmented)) {
     pushUniqueCandidate(candidates, compactWhitespace(segmented))
+  }
+
+  // Graph IDs often look like Th12 while traces may render separators/case differently.
+  const alphaNumericTail = splitAlphaNumericTail(segmented)
+  if (alphaNumericTail) {
+    pushUniqueCandidate(
+      candidates,
+      `${alphaNumericTail.prefix.toLowerCase()}${alphaNumericTail.suffix}`
+    )
+    pushUniqueCandidate(candidates, `${alphaNumericTail.prefix} ${alphaNumericTail.suffix}`)
+    pushUniqueCandidate(candidates, `${alphaNumericTail.prefix}_${alphaNumericTail.suffix}`)
   }
 
   return candidates.slice(0, MAX_CANDIDATES_PER_TOKEN)

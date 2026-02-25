@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { graphviz, type GraphvizRenderer } from 'd3-graphviz'
-import { extractGraphTokenFromEvent } from '../lib/graphToken'
+import { extractGraphMatchTokensFromEvent, extractGraphTokenFromEvent } from '../lib/graphToken'
 import './GraphViewer.css'
 
 type GraphViewerProps = {
   dot: string
-  onTokenClick?: (token: string) => void
+  onTokenClick?: (token: string, matchTokens?: string[]) => void
   className?: string
 }
 
@@ -104,7 +104,11 @@ function bindDelegatedGraphClickHandler(
     if (!tokenResult) {
       return
     }
-    onTokenClickRef.current?.(tokenResult.token)
+    const matchTokens = extractGraphMatchTokensFromEvent(event)
+    onTokenClickRef.current?.(
+      tokenResult.token,
+      matchTokens.length > 0 ? matchTokens : [tokenResult.token]
+    )
   }
 
   container.addEventListener('click', onContainerClick)

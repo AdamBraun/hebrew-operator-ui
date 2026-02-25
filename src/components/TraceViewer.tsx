@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { normalizeToken } from '../lib/matchTokens'
+import { computeTraceLineHighlights } from '../lib/traceHighlight'
 import './TraceViewer.css'
 
 type TraceViewerProps = {
@@ -10,14 +11,6 @@ type TraceViewerProps = {
 
 function splitTraceLines(traceText: string): string[] {
   return traceText.split('\n')
-}
-
-function hasHighlight(line: string, matchCandidates: string[]): boolean {
-  if (matchCandidates.length === 0) {
-    return false
-  }
-
-  return matchCandidates.some((token) => token.length > 0 && line.includes(token))
 }
 
 function TraceViewer({ traceText, highlightTokens, onClearHighlight }: TraceViewerProps) {
@@ -40,8 +33,8 @@ function TraceViewer({ traceText, highlightTokens, onClearHighlight }: TraceView
     return mergedCandidates
   }, [highlightTokens])
   const lineHighlights = useMemo(
-    () => lines.map((line) => hasHighlight(line, matchCandidates)),
-    [lines, matchCandidates]
+    () => computeTraceLineHighlights(lines, highlightTokens, matchCandidates),
+    [highlightTokens, lines, matchCandidates]
   )
   const firstMatchIndex = useMemo(
     () => lineHighlights.findIndex((matches) => matches),

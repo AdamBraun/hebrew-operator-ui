@@ -26,6 +26,13 @@ describe('normalizeToken', () => {
     expect(candidates.every((candidate) => candidate.trim().length > 0)).toBe(true)
   })
 
+  it('adds graph-style id variations for better trace matching', () => {
+    const candidates = normalizeToken('Th12')
+    expect(candidates).toContain('Th12')
+    expect(candidates).toContain('th12')
+    expect(candidates).toContain('Th 12')
+  })
+
   it('caps candidate list to avoid over-broad highlighting', () => {
     const candidates = normalizeToken(' "A   B|C   D\nE F" ')
     expect(candidates.length).toBeLessThanOrEqual(5)
