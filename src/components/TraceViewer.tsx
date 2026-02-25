@@ -26,7 +26,14 @@ function TraceViewer({ text }: TraceViewerProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minWidth: 0,
+      }}
+    >
       <div
         style={{
           display: 'flex',
@@ -47,8 +54,10 @@ function TraceViewer({ text }: TraceViewerProps) {
         style={{
           margin: 0,
           whiteSpace: 'pre',
-          overflow: 'auto',
+          overflowX: 'auto',
+          overflowY: 'auto',
           flex: 1,
+          maxWidth: '100%',
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
           fontSize: '0.85rem',
           border: '1px solid #e2e8f0',
@@ -64,4 +73,3 @@ function TraceViewer({ text }: TraceViewerProps) {
 }
 
 export default TraceViewer
-

@@ -118,7 +118,7 @@ function VersePage() {
               <main
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
+                  gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
                   gap: '1rem',
                 }}
               >
@@ -129,6 +129,7 @@ function VersePage() {
                     borderRadius: '8px',
                     padding: '1rem',
                     minHeight: '240px',
+                    minWidth: 0,
                   }}
                 >
                   <h2>Graph</h2>
@@ -143,6 +144,7 @@ function VersePage() {
                     padding: '1rem',
                     minHeight: '240px',
                     height: '520px',
+                    minWidth: 0,
                   }}
                 >
                   <TraceViewer text={artifacts.traceTxt} />
