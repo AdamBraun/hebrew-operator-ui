@@ -1,0 +1,74 @@
+.verse-page__loading {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 760px;
+}
+
+.verse-page__skeleton {
+  background: #eef2f7;
+  border-radius: 6px;
+}
+
+.verse-page__skeleton--line-sm {
+  height: 28px;
+}
+
+.verse-page__skeleton--line-lg {
+  height: 48px;
+}
+
+.verse-page__skeleton--block {
+  height: 220px;
+  border-radius: 8px;
+  background: #f4f6fa;
+}
+
+.verse-page__error {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.verse-page__error-detail {
+  margin: 0;
+  color: #475569;
+}
+
+.verse-page__error-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.verse-page__split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.22fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.verse-page__panel {
+  border: 1px solid #d0d7e2;
+  border-radius: 8px;
+  padding: 1rem;
+  min-height: 240px;
+  min-width: 0;
+}
+
+.verse-page__panel--trace {
+  height: min(58vh, 560px);
+  overflow: hidden;
+}
+
+.verse-page__panel-alert {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .verse-page__split {
+    grid-template-columns: 1fr;
+  }
+
+  .verse-page__panel--trace {
+    height: 50vh;
+    min-height: 320px;
+  }
+}

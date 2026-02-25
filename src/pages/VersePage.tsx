@@ -9,6 +9,7 @@ import { FetchError, fetchJson, fetchText } from '../lib/fetcher'
 import { normalizeVerseRef } from '../lib/ref'
 import type { Manifest } from '../lib/types'
 import { extractVerseText } from '../lib/verseText'
+import './VersePage.css'
 
 type LoadError = {
   message: string
@@ -138,38 +139,17 @@ function VersePage() {
       ) : (
         <>
           {loading ? (
-            <section
-              aria-busy="true"
-              style={{ display: 'grid', gap: '0.75rem', maxWidth: '760px' }}
-            >
+            <section aria-busy="true" className="verse-page__loading">
               <p>Loading verse...</p>
-              <div
-                style={{
-                  height: '28px',
-                  borderRadius: '6px',
-                  background: '#eef2f7',
-                }}
-              />
-              <div
-                style={{
-                  height: '48px',
-                  borderRadius: '6px',
-                  background: '#eef2f7',
-                }}
-              />
-              <div
-                style={{
-                  height: '220px',
-                  borderRadius: '8px',
-                  background: '#f4f6fa',
-                }}
-              />
+              <div className="verse-page__skeleton verse-page__skeleton--line-sm" />
+              <div className="verse-page__skeleton verse-page__skeleton--line-lg" />
+              <div className="verse-page__skeleton verse-page__skeleton--block" />
             </section>
           ) : error ? (
-            <section style={{ display: 'grid', gap: '0.5rem' }}>
+            <section className="verse-page__error">
               <p role="alert">{error.message}</p>
-              <p style={{ margin: 0, color: '#475569' }}>{error.detail}</p>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <p className="verse-page__error-detail">{error.detail}</p>
+              <div className="verse-page__error-actions">
                 <button type="button" onClick={retryLoad}>
                   Retry
                 </button>
@@ -181,32 +161,15 @@ function VersePage() {
               <VerseHeader verseRef={ref} manifest={manifest} />
               <VerseText text={verseText.text} />
 
-              <main
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-                  gap: '1rem',
-                }}
-              >
-                <section
-                  aria-label="Graph"
-                  style={{
-                    border: '1px solid #d0d7e2',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    minHeight: '240px',
-                    minWidth: 0,
-                  }}
-                >
+              <main className="verse-page__split">
+                <section aria-label="Graph" className="verse-page__panel">
                   <h2>Graph</h2>
                   {graphError ? (
                     <>
-                      <p role="alert" style={{ marginTop: 0 }}>
+                      <p role="alert" className="verse-page__panel-alert">
                         {graphError.message}
                       </p>
-                      <p style={{ color: '#475569', marginTop: 0 }}>
-                        {graphError.detail}
-                      </p>
+                      <p className="verse-page__error-detail">{graphError.detail}</p>
                       <button type="button" onClick={retryLoad}>
                         Retry
                       </button>
@@ -216,17 +179,7 @@ function VersePage() {
                   )}
                 </section>
 
-                <section
-                  aria-label="Trace"
-                  style={{
-                    border: '1px solid #d0d7e2',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    minHeight: '240px',
-                    height: '520px',
-                    minWidth: 0,
-                  }}
-                >
+                <section aria-label="Trace" className="verse-page__panel verse-page__panel--trace">
                   <TraceViewer text={data.traceTxt} />
                 </section>
               </main>
