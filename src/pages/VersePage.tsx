@@ -9,7 +9,7 @@ import VersePager from '../components/VersePager'
 import VerseText from '../components/VerseText'
 import { graphDotUrl, manifestUrl, traceJsonUrl, traceTxtUrl } from '../lib/corpus'
 import { FetchError, fetchJson, fetchText } from '../lib/fetcher'
-import { getNextRef, getPrevRef } from '../lib/navWalk'
+import { getNextRefTiered, getPrevRefTiered } from '../lib/navWalkTiered'
 import { normalizeVerseRef } from '../lib/ref'
 import { useVerseHotkeys } from '../hooks/useVerseHotkeys'
 import { useNavState } from '../state/nav'
@@ -68,7 +68,13 @@ function toLoadError(fileName: string, url: string, error: unknown): LoadError {
 function VersePage() {
   const navigate = useNavigate()
   const { book, chapter, verse } = useParams()
-  const { nav, loading: navLoading, error: navError } = useNavState()
+  const {
+    nav,
+    loading: navLoading,
+    error: navError,
+    ensureChapters,
+    ensureVerses,
+  } = useNavState()
   const ref = useMemo(
     () => normalizeVerseRef({ book, chapter, verse }),
     [book, chapter, verse]
@@ -79,25 +85,20 @@ function VersePage() {
   const [data, setData] = useState<VerseData | null>(null)
   const [graphError, setGraphError] = useState<LoadError | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [navTransitionLoading, setNavTransitionLoading] = useState(false)
+  const [prevRef, setPrevRef] = useState<VerseRef | null>(null)
+  const [nextRef, setNextRef] = useState<VerseRef | null>(null)
   const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
   const isKnownRef = useMemo(() => {
     if (!ref || !nav) {
       return null
     }
-    return Boolean(nav.versesByBookChapter[ref.book]?.[ref.chapter3]?.includes(ref.verse3))
+    const verses = nav.versesByBookChapter[ref.book]?.[ref.chapter3]
+    if (!verses) {
+      return null
+    }
+    return verses.includes(ref.verse3)
   }, [nav, ref])
-  const prevRef = useMemo(() => {
-    if (!nav || !ref || isKnownRef !== true) {
-      return null
-    }
-    return getPrevRef(nav, ref)
-  }, [nav, ref, isKnownRef])
-  const nextRef = useMemo(() => {
-    if (!nav || !ref || isKnownRef !== true) {
-      return null
-    }
-    return getNextRef(nav, ref)
-  }, [nav, ref, isKnownRef])
   const goPrev = useMemo(
     () =>
       prevRef ? () => navigate(`/${prevRef.book}/${prevRef.chapter3}/${prevRef.verse3}`) : null,
@@ -110,6 +111,74 @@ function VersePage() {
   )
 
   useVerseHotkeys({ onPrev: goPrev, onNext: goNext })
+
+  useEffect(() => {
+    if (!ref || !nav) {
+      return
+    }
+    const currentRef = ref
+
+    let canceled = false
+
+    async function loadTierForCurrentRef() {
+      try {
+        await ensureChapters(currentRef.book)
+        await ensureVerses(currentRef.book, currentRef.chapter3)
+      } catch {
+        // Preserve existing nav error handling from provider.
+      }
+
+      if (canceled) {
+        return
+      }
+    }
+
+    void loadTierForCurrentRef()
+
+    return () => {
+      canceled = true
+    }
+  }, [ensureChapters, ensureVerses, nav, ref])
+
+  useEffect(() => {
+    if (!nav || !ref || isKnownRef !== true) {
+      setPrevRef(null)
+      setNextRef(null)
+      return
+    }
+    const currentNav = nav
+    const currentRef = ref
+
+    let canceled = false
+
+    async function resolveAdjacentRefs() {
+      setNavTransitionLoading(true)
+
+      try {
+        const [prev, next] = await Promise.all([
+          getPrevRefTiered({ nav: currentNav, ensureChapters, ensureVerses }, currentRef),
+          getNextRefTiered({ nav: currentNav, ensureChapters, ensureVerses }, currentRef),
+        ])
+
+        if (canceled) {
+          return
+        }
+
+        setPrevRef(prev)
+        setNextRef(next)
+      } finally {
+        if (!canceled) {
+          setNavTransitionLoading(false)
+        }
+      }
+    }
+
+    void resolveAdjacentRefs()
+
+    return () => {
+      canceled = true
+    }
+  }, [ensureChapters, ensureVerses, isKnownRef, nav, ref])
 
   useEffect(() => {
     if (!ref || isKnownRef === false) {
@@ -200,7 +269,13 @@ function VersePage() {
   }
 
   const sidebar = nav ? (
-    <SidebarNav nav={nav} currentRef={ref} />
+    <SidebarNav
+      nav={nav}
+      currentRef={ref}
+      navLoading={navLoading || navTransitionLoading}
+      ensureChapters={ensureChapters}
+      ensureVerses={ensureVerses}
+    />
   ) : (
     <div className="verse-page__sidebar-state">
       <h2>Navigation</h2>
@@ -247,7 +322,11 @@ function VersePage() {
             </section>
           ) : data && manifest ? (
             <>
-              <VersePager prevRef={prevRef} nextRef={nextRef} navLoading={navLoading} />
+              <VersePager
+                prevRef={prevRef}
+                nextRef={nextRef}
+                navLoading={navLoading || navTransitionLoading}
+              />
               <VerseHeader verseRef={ref} manifest={manifest} />
               <VerseText text={verseText.text} />
 

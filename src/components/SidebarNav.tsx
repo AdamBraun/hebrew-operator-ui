@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { NavModel } from '../lib/navModel'
 import type { VerseRef } from '../lib/ref'
@@ -8,37 +8,24 @@ import './SidebarNav.css'
 type SidebarNavProps = {
   nav: NavModel
   currentRef: VerseRef | null
+  navLoading?: boolean
+  ensureChapters: (book: string) => Promise<string[]>
+  ensureVerses: (book: string, chapter3: string) => Promise<string[]>
 }
 
 function routePath(book: string, chapter3: string, verse3: string): string {
   return `/${book}/${chapter3}/${verse3}`
 }
 
-function firstRefForBook(nav: NavModel, book: string): VerseRef | null {
-  const chapter3 = nav.chaptersByBook[book]?.[0]
-  if (!chapter3) {
-    return null
-  }
-
-  const verse3 = nav.versesByBookChapter[book]?.[chapter3]?.[0]
-  if (!verse3) {
-    return null
-  }
-
-  return { book, chapter3, verse3 }
-}
-
-function firstRefForChapter(nav: NavModel, book: string, chapter3: string): VerseRef | null {
-  const verse3 = nav.versesByBookChapter[book]?.[chapter3]?.[0]
-  if (!verse3) {
-    return null
-  }
-
-  return { book, chapter3, verse3 }
-}
-
-function SidebarNav({ nav, currentRef }: SidebarNavProps) {
+function SidebarNav({
+  nav,
+  currentRef,
+  navLoading = false,
+  ensureChapters,
+  ensureVerses,
+}: SidebarNavProps) {
   const navigate = useNavigate()
+  const [busy, setBusy] = useState(false)
 
   const selectedBook = useMemo(() => {
     if (currentRef && nav.books.includes(currentRef.book)) {
@@ -58,23 +45,68 @@ function SidebarNav({ nav, currentRef }: SidebarNavProps) {
 
   const verseOptions = nav.versesByBookChapter[selectedBook]?.[selectedChapter] ?? []
 
-  function onBookChange(event: ChangeEvent<HTMLSelectElement>) {
-    const nextBook = event.target.value
-    const nextRef = firstRefForBook(nav, nextBook)
-    if (!nextRef) {
+  useEffect(() => {
+    if (!selectedBook || chapterOptions.length > 0) {
       return
     }
-    navigate(routePath(nextRef.book, nextRef.chapter3, nextRef.verse3))
+
+    void ensureChapters(selectedBook)
+  }, [chapterOptions.length, ensureChapters, selectedBook])
+
+  useEffect(() => {
+    if (!selectedBook || !selectedChapter || verseOptions.length > 0) {
+      return
+    }
+
+    void ensureVerses(selectedBook, selectedChapter)
+  }, [ensureVerses, selectedBook, selectedChapter, verseOptions.length])
+
+  async function onBookChange(event: ChangeEvent<HTMLSelectElement>) {
+    const nextBook = event.target.value
+    if (!nextBook) {
+      return
+    }
+
+    setBusy(true)
+    try {
+      const chapters = await ensureChapters(nextBook)
+      const nextChapter = chapters[0]
+      if (!nextChapter) {
+        return
+      }
+
+      const verses = await ensureVerses(nextBook, nextChapter)
+      const nextVerse = verses[0]
+      if (!nextVerse) {
+        return
+      }
+
+      navigate(routePath(nextBook, nextChapter, nextVerse))
+    } finally {
+      setBusy(false)
+    }
   }
 
-  function onChapterChange(event: ChangeEvent<HTMLSelectElement>) {
+  async function onChapterChange(event: ChangeEvent<HTMLSelectElement>) {
     const nextChapter = event.target.value
-    const nextRef = firstRefForChapter(nav, selectedBook, nextChapter)
-    if (!nextRef) {
+    if (!selectedBook || !nextChapter) {
       return
     }
-    navigate(routePath(nextRef.book, nextRef.chapter3, nextRef.verse3))
+
+    setBusy(true)
+    try {
+      const verses = await ensureVerses(selectedBook, nextChapter)
+      const nextVerse = verses[0]
+      if (!nextVerse) {
+        return
+      }
+      navigate(routePath(selectedBook, nextChapter, nextVerse))
+    } finally {
+      setBusy(false)
+    }
   }
+
+  const controlsDisabled = navLoading || busy
 
   return (
     <nav aria-label="Corpus Navigation" className="sidebar-nav">
@@ -88,6 +120,7 @@ function SidebarNav({ nav, currentRef }: SidebarNavProps) {
         className="sidebar-nav__select"
         value={selectedBook}
         onChange={onBookChange}
+        disabled={controlsDisabled}
       >
         {nav.books.map((book) => (
           <option key={book} value={book}>
@@ -104,6 +137,7 @@ function SidebarNav({ nav, currentRef }: SidebarNavProps) {
         className="sidebar-nav__select"
         value={selectedChapter}
         onChange={onChapterChange}
+        disabled={controlsDisabled || chapterOptions.length === 0}
       >
         {chapterOptions.map((chapter3) => (
           <option key={chapter3} value={chapter3}>
@@ -127,6 +161,7 @@ function SidebarNav({ nav, currentRef }: SidebarNavProps) {
               role="listitem"
               className={`sidebar-nav__verse ${isCurrent ? 'sidebar-nav__verse--active' : ''}`}
               aria-current={isCurrent ? 'true' : undefined}
+              disabled={controlsDisabled}
               onClick={() => navigate(routePath(selectedBook, selectedChapter, verse3))}
             >
               {verse3}

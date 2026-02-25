@@ -1,21 +1,39 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { fetchCorpusIndex } from '../lib'
-import { buildNavModel, type NavModel } from '../lib/navModel'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { fetchBooks, fetchChapters, fetchVerses } from '../lib'
+import type { NavModel } from '../lib/navModel'
 
 type NavState = {
   nav: NavModel | null
   loading: boolean
   error: string | null
+  ensureChapters: (book: string) => Promise<string[]>
+  ensureVerses: (book: string, chapter3: string) => Promise<string[]>
 }
 
 const NavContext = createContext<NavState>({
   nav: null,
   loading: true,
   error: null,
+  ensureChapters: async () => [],
+  ensureVerses: async () => [],
 })
 
 type NavProviderProps = {
   children: ReactNode
+}
+
+function mergeUniqueSorted(current: string[] | undefined, incoming: string[]): string[] {
+  const merged = new Set<string>([...(current ?? []), ...incoming])
+  return [...merged].sort()
 }
 
 export function NavProvider({ children }: NavProviderProps) {
@@ -23,19 +41,133 @@ export function NavProvider({ children }: NavProviderProps) {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
+  const navRef = useRef<NavModel | null>(null)
+  const chapterRequestsRef = useRef<Map<string, Promise<string[]>>>(new Map())
+  const verseRequestsRef = useRef<Map<string, Promise<string[]>>>(new Map())
+
+  useEffect(() => {
+    navRef.current = nav
+  }, [nav])
+
+  const ensureChapters = useCallback(async (book: string) => {
+    const normalizedBook = book.trim().toLowerCase()
+    if (!normalizedBook) {
+      return []
+    }
+
+    const existing = navRef.current?.chaptersByBook[normalizedBook]
+    if (existing && existing.length > 0) {
+      return existing
+    }
+
+    const inFlight = chapterRequestsRef.current.get(normalizedBook)
+    if (inFlight) {
+      return inFlight
+    }
+
+    const request = fetchChapters(normalizedBook)
+      .then((chapters) => {
+        setNav((current) => {
+          const base: NavModel = current ?? {
+            books: [],
+            chaptersByBook: {},
+            versesByBookChapter: {},
+          }
+
+          return {
+            ...base,
+            books: mergeUniqueSorted(base.books, [normalizedBook]),
+            chaptersByBook: {
+              ...base.chaptersByBook,
+              [normalizedBook]: chapters,
+            },
+          }
+        })
+        return chapters
+      })
+      .finally(() => {
+        chapterRequestsRef.current.delete(normalizedBook)
+      })
+
+    chapterRequestsRef.current.set(normalizedBook, request)
+    return request
+  }, [])
+
+  const ensureVerses = useCallback(
+    async (book: string, chapter3: string) => {
+      const normalizedBook = book.trim().toLowerCase()
+      const normalizedChapter = chapter3.trim().padStart(3, '0')
+      if (!normalizedBook || !normalizedChapter) {
+        return []
+      }
+
+      const existing =
+        navRef.current?.versesByBookChapter[normalizedBook]?.[normalizedChapter]
+      if (existing && existing.length > 0) {
+        return existing
+      }
+
+      const key = `${normalizedBook}/${normalizedChapter}`
+      const inFlight = verseRequestsRef.current.get(key)
+      if (inFlight) {
+        return inFlight
+      }
+
+      const request = fetchVerses(normalizedBook, normalizedChapter)
+        .then((verses) => {
+          setNav((current) => {
+            const base: NavModel = current ?? {
+              books: [],
+              chaptersByBook: {},
+              versesByBookChapter: {},
+            }
+
+            const existingVersesByBook = base.versesByBookChapter[normalizedBook] ?? {}
+            const existingChapters = base.chaptersByBook[normalizedBook] ?? []
+
+            return {
+              ...base,
+              books: mergeUniqueSorted(base.books, [normalizedBook]),
+              chaptersByBook: {
+                ...base.chaptersByBook,
+                [normalizedBook]: mergeUniqueSorted(existingChapters, [normalizedChapter]),
+              },
+              versesByBookChapter: {
+                ...base.versesByBookChapter,
+                [normalizedBook]: {
+                  ...existingVersesByBook,
+                  [normalizedChapter]: verses,
+                },
+              },
+            }
+          })
+          return verses
+        })
+        .finally(() => {
+          verseRequestsRef.current.delete(key)
+        })
+
+      verseRequestsRef.current.set(key, request)
+      return request
+    },
+    []
+  )
+
   useEffect(() => {
     let canceled = false
 
-    async function loadNav() {
+    async function loadBooks() {
       try {
-        const indexJson = await fetchCorpusIndex()
-        const model = buildNavModel(indexJson)
-
+        const books = await fetchBooks()
         if (canceled) {
           return
         }
 
-        setNav(model)
+        setNav({
+          books: [...books],
+          chaptersByBook: {},
+          versesByBookChapter: {},
+        })
         setError(null)
       } catch (loadError: unknown) {
         if (canceled) {
@@ -43,7 +175,7 @@ export function NavProvider({ children }: NavProviderProps) {
         }
 
         const message =
-          loadError instanceof Error ? loadError.message : 'Failed to load navigation'
+          loadError instanceof Error ? loadError.message : 'Failed to load navigation books'
         setError(message)
       } finally {
         if (!canceled) {
@@ -52,7 +184,7 @@ export function NavProvider({ children }: NavProviderProps) {
       }
     }
 
-    void loadNav()
+    void loadBooks()
 
     return () => {
       canceled = true
@@ -64,8 +196,10 @@ export function NavProvider({ children }: NavProviderProps) {
       nav,
       loading,
       error,
+      ensureChapters,
+      ensureVerses,
     }),
-    [nav, loading, error]
+    [nav, loading, error, ensureChapters, ensureVerses]
   )
 
   return <NavContext.Provider value={value}>{children}</NavContext.Provider>
