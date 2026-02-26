@@ -13,7 +13,7 @@
 
 .verse-page__pager-status {
   font-size: 0.9rem;
-  color: #475569;
+  color: var(--neutral-text-muted);
   margin-right: 0.25rem;
 }
 
@@ -33,11 +33,11 @@
 
 .verse-page__sidebar-state p {
   margin: 0;
-  color: #475569;
+  color: var(--neutral-text-muted);
 }
 
 .verse-page__skeleton {
-  background: #eef2f7;
+  background: var(--neutral-surface-2);
   border-radius: 6px;
 }
 
@@ -52,7 +52,7 @@
 .verse-page__skeleton--block {
   height: 220px;
   border-radius: 8px;
-  background: #f4f6fa;
+  background: var(--neutral-surface-1);
 }
 
 .verse-page__error {
@@ -62,7 +62,7 @@
 
 .verse-page__error-detail {
   margin: 0;
-  color: #475569;
+  color: var(--neutral-text-muted);
 }
 
 .verse-page__error-actions {
@@ -78,11 +78,12 @@
 }
 
 .verse-page__panel {
-  border: 1px solid #d0d7e2;
+  border: 1px solid var(--neutral-border);
   border-radius: 8px;
   padding: 1rem;
   min-height: 240px;
   min-width: 0;
+  background: var(--neutral-surface-1);
 }
 
 .verse-page__panel--graph {
@@ -109,7 +110,7 @@
   display: grid;
   gap: 0.25rem;
   font-size: 0.85rem;
-  color: #334155;
+  color: var(--neutral-text);
 }
 
 .verse-page__resolver-select select {
