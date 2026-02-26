@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { graphviz, type GraphvizRenderer } from 'd3-graphviz'
 import GraphDebugOverlay from './GraphViewer/GraphDebugOverlay'
+import GraphUsageLegend from './GraphViewer/GraphUsageLegend'
 import {
   getClickedGraphEntity,
   type ClickedGraphEntity,
@@ -527,6 +528,7 @@ function GraphViewer({
 
       <div className="graph-viewer__canvas-wrap">
         <div ref={containerRef} className="graph-viewer__canvas" aria-busy={isRendering} />
+        {hasDot ? <GraphUsageLegend /> : null}
         <GraphDebugOverlay entity={lastClickedEntity} />
         {hasDot && isRendering ? <div className="graph-viewer__overlay">Rendering...</div> : null}
       </div>
