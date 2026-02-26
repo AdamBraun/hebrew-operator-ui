@@ -5,8 +5,8 @@ import GraphViewer from '../components/GraphViewer'
 import PasukHeader from '../components/PasukHeader/PasukHeader'
 import SidebarNav from '../components/SidebarNav'
 import VerseHeader from '../components/VerseHeader'
+import VerseLine from '../components/VerseLine'
 import VersePager from '../components/VersePager'
-import VerseText from '../components/VerseText'
 import TraceEventViewer from '../components/TraceEventViewer'
 import TraceTextViewer from '../components/TraceTextViewer'
 import { fallbackTextSearch } from '../lib/link/fallbackTextSearch'
@@ -301,6 +301,17 @@ function VersePage() {
     })
   }, [data, ref])
 
+  const verseWords = useMemo(() => {
+    if (pasukHeaderModel && pasukHeaderModel.words.length > 0) {
+      return pasukHeaderModel.words.map((word) => word.text)
+    }
+
+    return verseText.text
+      .split(/\s+/u)
+      .map((word) => word.trim())
+      .filter((word) => word.length > 0)
+  }, [pasukHeaderModel, verseText.text])
+
   const traceModel = useMemo(() => {
     if (!data) {
       return {
@@ -506,7 +517,7 @@ function VersePage() {
                   onSelectionClear={() => clearWordSelection()}
                 />
               ) : null}
-              <VerseText text={verseText.text} />
+              <VerseLine words={verseWords} />
 
               <main className="verse-page__split">
                 <section aria-label="Graph" className="verse-page__panel verse-page__panel--graph">

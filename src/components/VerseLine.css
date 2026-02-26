@@ -1,0 +1,19 @@
+.verse-line {
+  margin: 0 0 1rem;
+  direction: rtl;
+  unicode-bidi: isolate;
+  text-align: start;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.1rem;
+  scrollbar-width: thin;
+}
+
+.verse-line__word-wrap {
+  display: inline;
+}
+
+.verse-line__word {
+  display: inline;
+}
