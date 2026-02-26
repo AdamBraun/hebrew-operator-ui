@@ -179,6 +179,7 @@ function PasukHeader({
                   }
                 }}
                 type="button"
+                role="button"
                 className={[
                   'pasuk-header__chip',
                   isSelected ? 'pasuk-header__chip--selected' : '',
@@ -204,12 +205,14 @@ function PasukHeader({
                   emitWordSelect(nextWordIndex)
                 }}
                 aria-pressed={isSelected}
+                aria-describedby={`pasuk-seam-${word.index}`}
                 aria-label={`Word ${word.index}: ${word.text}`}
               >
                 <span className="pasuk-header__word">{word.text}</span>
               </button>
 
               <span
+                id={`pasuk-seam-${word.index}`}
                 className={['pasuk-header__seam', seam.className].join(' ')}
                 title={seamTitle}
                 aria-label={seamTitle}
