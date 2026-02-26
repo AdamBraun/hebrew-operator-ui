@@ -6,10 +6,9 @@ import SidebarNav from '../components/SidebarNav'
 import VerseHeader from '../components/VerseHeader'
 import VersePager from '../components/VersePager'
 import VerseText from '../components/VerseText'
-import TracePanel from '../../ui/src/components/TracePanel'
+import TraceEventViewer from '../components/TraceEventViewer'
 import { buildTraceIndex } from '../../ui/src/lib/trace/index_trace'
 import type { TraceIndex, TraceJson } from '../../ui/src/lib/trace/types'
-import { buildWordGroups } from '../../ui/src/lib/trace/words'
 import { FetchError } from '../lib/fetcher'
 import { getNextRefTiered, getPrevRefTiered } from '../lib/navWalkTiered'
 import { normalizeVerseRef } from '../lib/ref'
@@ -259,19 +258,16 @@ function VersePage() {
     if (!data) {
       return {
         traceIndex: null as TraceIndex | null,
-        wordGroups: [],
         error: null as LoadError | null,
       }
     }
 
     try {
       const traceIndex = buildTraceIndex(data.traceJson)
-      const wordGroups = buildWordGroups(traceIndex.events)
-      return { traceIndex, wordGroups, error: null }
+      return { traceIndex, error: null }
     } catch (buildError) {
       return {
         traceIndex: null as TraceIndex | null,
-        wordGroups: [],
         error: {
           message: 'Failed to build trace index',
           detail:
@@ -283,18 +279,35 @@ function VersePage() {
     }
   }, [data])
 
-  const firstHighlightedEventIndex = useMemo(() => {
+  const highlightedEventIndices = useMemo(() => {
     if (!selectedHandleId || !traceModel.traceIndex) {
-      return null
+      return [] as number[]
     }
 
     const refs = traceModel.traceIndex.refsByHandleId.get(selectedHandleId)
-    if (!refs || refs.length === 0) {
-      return null
+    return refs ? [...new Set(refs)].sort((a, b) => a - b) : []
+  }, [selectedHandleId, traceModel.traceIndex])
+
+  const primaryTraceLocation = useMemo(() => {
+    const firstEvent = highlightedEventIndices[0]
+    if (firstEvent === undefined) {
+      return undefined
     }
 
-    return refs[0]
-  }, [selectedHandleId, traceModel.traceIndex])
+    return {
+      kind: 'event' as const,
+      index: firstEvent,
+    }
+  }, [highlightedEventIndices])
+
+  const alternativeTraceLocations = useMemo(
+    () =>
+      highlightedEventIndices.slice(1).map((index) => ({
+        kind: 'event' as const,
+        index,
+      })),
+    [highlightedEventIndices]
+  )
 
   useEffect(() => {
     if (!selectedHandleId || !traceModel.traceIndex) {
@@ -422,13 +435,10 @@ function VersePage() {
                       <p className="verse-page__error-detail">{traceModel.error.detail}</p>
                     </>
                   ) : traceModel.traceIndex ? (
-                    <TracePanel
-                      trace={data.traceJson}
-                      selectedHandleId={selectedHandleId ?? undefined}
-                      handleById={traceModel.traceIndex.handleById}
-                      refsByHandleId={traceModel.traceIndex.refsByHandleId}
-                      wordGroups={traceModel.wordGroups}
-                      scrollToEventIndex={firstHighlightedEventIndex}
+                    <TraceEventViewer
+                      traceJson={data.traceJson}
+                      primary={primaryTraceLocation}
+                      alternatives={alternativeTraceLocations}
                     />
                   ) : (
                     <p className="verse-page__error-detail">Trace index unavailable.</p>
