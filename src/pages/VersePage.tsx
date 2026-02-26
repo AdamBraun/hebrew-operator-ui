@@ -1,25 +1,29 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppShell from '../layout/AppShell'
 import GraphViewer from '../components/GraphViewer'
 import PasukHeader from '../components/PasukHeader/PasukHeader'
+import ScopeLanesOverlay from '../components/ScopeLanesOverlay'
 import SidebarNav from '../components/SidebarNav'
 import VerseHeader from '../components/VerseHeader'
-import VerseLine from '../components/VerseLine'
+import VerseLine, { getWordRects, type WordRect } from '../components/VerseLine'
 import VersePager from '../components/VersePager'
 import TraceEventViewer from '../components/TraceEventViewer'
 import TraceTextViewer from '../components/TraceTextViewer'
 import { fallbackTextSearch } from '../lib/link/fallbackTextSearch'
 import { resolveGraphSelection } from '../lib/link/resolveGraphSelection'
 import type { GraphSelection } from '../lib/link/types'
+import { buildPasukHeaderModel } from '../lib/pasukHeaderModel'
+import { buildScopeLanesModel } from '../lib/scopeLanes/buildModel'
+import { segmentScopeLanes } from '../lib/scopeLanes/segment'
 import { buildTraceIndex } from '../lib/trace/buildTraceIndex'
 import type { TraceIndex, TraceLocation } from '../lib/trace/types'
+import { extractVerseText } from '../lib/verseText'
 import { FetchError } from '../lib/fetcher'
-import { getNextRefTiered, getPrevRefTiered } from '../lib/navWalkTiered'
-import { normalizeVerseRef } from '../lib/ref'
 import { useVerseHotkeys } from '../hooks/useVerseHotkeys'
-import { useNavState } from '../state/nav'
-import { useWordSelectionState } from '../state/selection'
+import { getNextRefTiered, getPrevRefTiered } from '../lib/navWalkTiered'
+import type { NavModel } from '../lib/navModel'
+import { normalizeVerseRef, type VerseRef } from '../lib/ref'
 import {
   loadGraphDot,
   loadManifest,
@@ -28,10 +32,8 @@ import {
   sourceUrlsForRef,
 } from '../lib/source'
 import type { Manifest } from '../lib/types'
-import type { NavModel } from '../lib/navModel'
-import type { VerseRef } from '../lib/ref'
-import { buildPasukHeaderModel } from '../lib/pasukHeaderModel'
-import { extractVerseText } from '../lib/verseText'
+import { useNavState } from '../state/nav'
+import { useWordSelectionState } from '../state/selection'
 import './VersePage.css'
 
 type LoadError = {
@@ -101,11 +103,9 @@ function VersePage() {
     ensureChapters,
     ensureVerses,
   } = useNavState()
-  const ref = useMemo(
-    () => normalizeVerseRef({ book, chapter, verse }),
-    [book, chapter, verse]
-  )
-  const [loading, setLoading] = useState<boolean>(false)
+  const ref = useMemo(() => normalizeVerseRef({ book, chapter, verse }), [book, chapter, verse])
+
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<LoadError | null>(null)
   const [manifest, setManifest] = useState<Manifest | null>(null)
   const [data, setData] = useState<VerseData | null>(null)
@@ -119,6 +119,11 @@ function VersePage() {
   const [headerMode, setHeaderMode] = useState<'read' | 'inspect'>('read')
   const [inspectDebugVisible, setInspectDebugVisible] = useState(false)
   const { selectedWordIndex, selectWord, clearWordSelection } = useWordSelectionState()
+
+  const verseLineContainerRef = useRef<HTMLDivElement | null>(null)
+  const [verseWordRects, setVerseWordRects] = useState<WordRect[]>([])
+  const [verseLineScrollWidth, setVerseLineScrollWidth] = useState(1)
+
   const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
   const isKnownRef = useMemo(() => {
     if (!ref || !nav) {
@@ -130,14 +135,13 @@ function VersePage() {
     }
     return verses.includes(ref.verse3)
   }, [nav, ref])
+
   const goPrev = useMemo(
-    () =>
-      prevRef ? () => navigate(`/${prevRef.book}/${prevRef.chapter3}/${prevRef.verse3}`) : null,
+    () => (prevRef ? () => navigate(`/${prevRef.book}/${prevRef.chapter3}/${prevRef.verse3}`) : null),
     [navigate, prevRef]
   )
   const goNext = useMemo(
-    () =>
-      nextRef ? () => navigate(`/${nextRef.book}/${nextRef.chapter3}/${nextRef.verse3}`) : null,
+    () => (nextRef ? () => navigate(`/${nextRef.book}/${nextRef.chapter3}/${nextRef.verse3}`) : null),
     [navigate, nextRef]
   )
 
@@ -156,7 +160,7 @@ function VersePage() {
         await ensureChapters(currentRef.book)
         await ensureVerses(currentRef.book, currentRef.chapter3)
       } catch {
-        // Preserve existing nav error handling from provider.
+        // Nav provider handles errors.
       }
 
       if (canceled) {
@@ -184,7 +188,6 @@ function VersePage() {
 
     async function resolveAdjacentRefs() {
       setNavTransitionLoading(true)
-
       try {
         const [prev, next] = await Promise.all([
           getPrevRefTiered({ nav: currentNav, ensureChapters, ensureVerses }, currentRef),
@@ -228,7 +231,6 @@ function VersePage() {
       setGraphError(null)
       return
     }
-
     const currentRef = ref
 
     let canceled = false
@@ -239,14 +241,13 @@ function VersePage() {
       setGraphError(null)
 
       const urls = sourceUrlsForRef(currentRef)
-
       const [manifestResult, traceJsonResult, graphDotResult, traceTxtResult] =
         await Promise.allSettled([
-        loadManifest({ cache: 'no-cache' }),
-        loadTraceJson(currentRef, { cache: 'no-cache' }),
-        loadGraphDot(currentRef, { cache: 'no-cache' }),
-        loadTraceTxt(currentRef, { cache: 'no-cache' }),
-      ])
+          loadManifest({ cache: 'no-cache' }),
+          loadTraceJson(currentRef, { cache: 'no-cache' }),
+          loadGraphDot(currentRef, { cache: 'no-cache' }),
+          loadTraceTxt(currentRef, { cache: 'no-cache' }),
+        ])
 
       if (canceled) {
         return
@@ -261,7 +262,6 @@ function VersePage() {
       }
 
       setManifest(manifestResult.status === 'fulfilled' ? manifestResult.value : {})
-
       if (graphDotResult.status === 'rejected') {
         setGraphError(toLoadError('graph.dot', urls.graphDot, graphDotResult.reason))
       }
@@ -279,13 +279,12 @@ function VersePage() {
     return () => {
       canceled = true
     }
-  }, [ref, retryCount, isKnownRef])
+  }, [isKnownRef, ref, retryCount])
 
   const verseText = useMemo(() => {
     if (!data) {
       return { text: '(verse text unavailable)', source: 'none' as const }
     }
-
     return extractVerseText(data.traceJson, data.traceTxt ?? '')
   }, [data])
 
@@ -293,7 +292,6 @@ function VersePage() {
     if (!data || !ref) {
       return null
     }
-
     return buildPasukHeaderModel({
       ref,
       traceTxt: data.traceTxt ?? '',
@@ -305,12 +303,58 @@ function VersePage() {
     if (pasukHeaderModel && pasukHeaderModel.words.length > 0) {
       return pasukHeaderModel.words.map((word) => word.text)
     }
-
     return verseText.text
       .split(/\s+/u)
       .map((word) => word.trim())
       .filter((word) => word.length > 0)
   }, [pasukHeaderModel, verseText.text])
+
+  const scopeLanesModel = useMemo(() => {
+    if (!data || !ref) {
+      return null
+    }
+    const model = buildScopeLanesModel(ref, data.traceTxt ?? '', data.traceJson)
+    return {
+      ...model,
+      lanes: segmentScopeLanes(model.boundariesAfter, model.words.length),
+    }
+  }, [data, ref])
+
+  useEffect(() => {
+    const container = verseLineContainerRef.current
+    if (!container) {
+      return
+    }
+
+    let animationFrame = 0
+
+    const measure = () => {
+      animationFrame = 0
+      const spanNodes = [...container.querySelectorAll<HTMLElement>('[data-word-index]')]
+      setVerseWordRects(getWordRects(container, spanNodes))
+      setVerseLineScrollWidth(Math.max(container.scrollWidth, 1))
+    }
+
+    const requestMeasure = () => {
+      if (animationFrame !== 0) {
+        return
+      }
+      animationFrame = window.requestAnimationFrame(measure)
+    }
+
+    requestMeasure()
+    const resizeObserver = new ResizeObserver(() => requestMeasure())
+    resizeObserver.observe(container)
+    container.addEventListener('scroll', requestMeasure, { passive: true })
+
+    return () => {
+      resizeObserver.disconnect()
+      container.removeEventListener('scroll', requestMeasure)
+      if (animationFrame !== 0) {
+        window.cancelAnimationFrame(animationFrame)
+      }
+    }
+  }, [verseWords])
 
   const traceModel = useMemo(() => {
     if (!data) {
@@ -319,7 +363,6 @@ function VersePage() {
         error: null as LoadError | null,
       }
     }
-
     try {
       const traceIndex = buildTraceIndex(data.traceJson)
       return { traceIndex, error: null }
@@ -328,10 +371,7 @@ function VersePage() {
         traceIndex: null as TraceIndex | null,
         error: {
           message: 'Failed to build trace index',
-          detail:
-            buildError instanceof Error
-              ? buildError.message
-              : 'Unknown trace index failure',
+          detail: buildError instanceof Error ? buildError.message : 'Unknown trace index failure',
         },
       }
     }
@@ -358,7 +398,6 @@ function VersePage() {
       setSelectedMatchIndex(0)
       return
     }
-
     setSelectedMatchIndex((current) => Math.min(current, rankedLocations.length - 1))
   }, [rankedLocations.length])
 
@@ -366,7 +405,6 @@ function VersePage() {
     if (rankedLocations.length === 0) {
       return undefined
     }
-
     return rankedLocations[selectedMatchIndex]
   }, [rankedLocations, selectedMatchIndex])
 
@@ -379,7 +417,6 @@ function VersePage() {
     if (!traceModel.traceIndex?.byWordIndex || !selectedWordIndex) {
       return []
     }
-
     return [...(traceModel.traceIndex.byWordIndex.get(selectedWordIndex) ?? [])]
   }, [selectedWordIndex, traceModel.traceIndex])
 
@@ -397,11 +434,9 @@ function VersePage() {
     if (!graphSelection || !data?.traceTxt) {
       return null
     }
-
     if (resolvedSelection.confidence === 'high') {
       return null
     }
-
     return fallbackTextSearch(data.traceTxt, graphSelection, 200)
   }, [data?.traceTxt, graphSelection, resolvedSelection.confidence])
 
@@ -443,9 +478,7 @@ function VersePage() {
               Go to first available ref
             </button>
           ) : (
-            <p className="verse-page__error-detail">
-              The corpus index did not include any references.
-            </p>
+            <p className="verse-page__error-detail">The corpus index did not include any references.</p>
           )}
         </section>
       ) : (
@@ -476,12 +509,9 @@ function VersePage() {
                 navLoading={navLoading || navTransitionLoading}
               />
               <VerseHeader verseRef={ref} manifest={manifest} />
+
               <div className="verse-page__header-controls" role="group" aria-label="Pasuk header mode">
-                <button
-                  type="button"
-                  onClick={() => setHeaderMode('read')}
-                  aria-pressed={headerMode === 'read'}
-                >
+                <button type="button" onClick={() => setHeaderMode('read')} aria-pressed={headerMode === 'read'}>
                   Read
                 </button>
                 <button
@@ -503,6 +533,7 @@ function VersePage() {
                   </button>
                 ) : null}
               </div>
+
               {pasukHeaderModel ? (
                 <PasukHeader
                   model={pasukHeaderModel}
@@ -517,15 +548,25 @@ function VersePage() {
                   onSelectionClear={() => clearWordSelection()}
                 />
               ) : null}
-              <VerseLine words={verseWords} />
+
+              <section className="verse-page__verse-structure">
+                <VerseLine words={verseWords} containerRef={verseLineContainerRef} />
+                {scopeLanesModel ? (
+                  <ScopeLanesOverlay
+                    rects={verseWordRects}
+                    lanes={scopeLanesModel.lanes}
+                    contentWidth={verseLineScrollWidth}
+                  />
+                ) : null}
+              </section>
 
               <main className="verse-page__split">
                 <section aria-label="Graph" className="verse-page__panel verse-page__panel--graph">
                   <h2>Graph</h2>
                   {graphSelection ? (
                     <p className="verse-page__error-detail">
-                      Selection: <code>{graphSelection.kind}</code> <code>{graphSelection.id}</code>{' '}
-                      | confidence <code>{resolvedSelection.confidence}</code>
+                      Selection: <code>{graphSelection.kind}</code> <code>{graphSelection.id}</code> | confidence{' '}
+                      <code>{resolvedSelection.confidence}</code>
                     </p>
                   ) : null}
                   {graphError ? (
@@ -546,7 +587,6 @@ function VersePage() {
                           setGraphSelection(null)
                           return
                         }
-
                         clearWordSelection()
                         setGraphSelection({
                           kind: entity.kind,
@@ -570,11 +610,7 @@ function VersePage() {
                           <span>Alternatives</span>
                           <select
                             value={selectedMatchIndex}
-                            onChange={(event) =>
-                              setSelectedMatchIndex(
-                                Number.parseInt(event.target.value, 10) || 0
-                              )
-                            }
+                            onChange={(event) => setSelectedMatchIndex(Number.parseInt(event.target.value, 10) || 0)}
                           >
                             {rankedLocations.map((location, index) => (
                               <option key={`${location.kind}-${location.index}-${index}`} value={index}>
@@ -597,13 +633,9 @@ function VersePage() {
                     <>
                       <TraceEventViewer
                         traceJson={data.traceJson}
-                        primary={
-                          graphSelection ? primaryTraceLocation : selectedWordPrimaryTraceLocation
-                        }
+                        primary={graphSelection ? primaryTraceLocation : selectedWordPrimaryTraceLocation}
                         alternatives={
-                          graphSelection
-                            ? alternativeTraceLocations
-                            : selectedWordAlternativeTraceLocations
+                          graphSelection ? alternativeTraceLocations : selectedWordAlternativeTraceLocations
                         }
                       />
                       {resolvedSelection.confidence !== 'high' && data.traceTxt ? (

@@ -1,0 +1,50 @@
+.scope-lanes-overlay {
+  display: block;
+  margin-top: 0.15rem;
+  overflow: visible;
+}
+
+.scope-lanes-overlay__visible {
+  fill: none;
+  stroke: var(--neutral-border);
+  stroke-width: var(--scope-lane-stroke-width, 1.75px);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  transition:
+    stroke 120ms ease,
+    stroke-width 120ms ease,
+    filter 120ms ease;
+  pointer-events: none;
+}
+
+.scope-lanes-overlay__path--rank-3 .scope-lanes-overlay__visible {
+  stroke-width: var(--scope-lane-rank3-width, 2.5px);
+}
+
+.scope-lanes-overlay__path--rank-2 .scope-lanes-overlay__visible {
+  stroke-width: var(--scope-lane-rank2-width, 2px);
+}
+
+.scope-lanes-overlay__path--rank-1 .scope-lanes-overlay__visible {
+  stroke-width: var(--scope-lane-rank1-width, 1.5px);
+}
+
+.scope-lanes-overlay__path--hovered .scope-lanes-overlay__visible {
+  stroke: var(--edge-link);
+}
+
+.scope-lanes-overlay__path--selected .scope-lanes-overlay__visible {
+  stroke: var(--select-primary);
+  filter: drop-shadow(0 0 2px var(--p-select-primary-glow));
+}
+
+.scope-lanes-overlay__hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: var(--scope-lane-hit-width, 10px);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: stroke;
+}
+

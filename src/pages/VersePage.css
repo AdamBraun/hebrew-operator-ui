@@ -81,6 +81,10 @@
   opacity: 0.9;
 }
 
+.verse-page__verse-structure {
+  margin-bottom: 0.75rem;
+}
+
 .verse-page__split {
   display: grid;
   grid-template-columns: minmax(0, 1.22fr) minmax(0, 1fr);
