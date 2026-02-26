@@ -6,7 +6,7 @@ import PasukHeader from '../components/PasukHeader/PasukHeader'
 import ScopeLanesOverlay from '../components/ScopeLanesOverlay'
 import SidebarNav from '../components/SidebarNav'
 import VerseHeader from '../components/VerseHeader'
-import VerseLine, { getWordRects, type WordRect } from '../components/VerseLine'
+import VerseLine from '../components/VerseLine'
 import VersePager from '../components/VersePager'
 import TraceEventViewer from '../components/TraceEventViewer'
 import TraceTextViewer from '../components/TraceTextViewer'
@@ -16,6 +16,7 @@ import type { GraphSelection } from '../lib/link/types'
 import { buildPasukHeaderModel } from '../lib/pasukHeaderModel'
 import { buildScopeLanesModel } from '../lib/scopeLanes/buildModel'
 import { segmentScopeLanes } from '../lib/scopeLanes/segment'
+import { useWordMeasurements } from '../lib/scopeLanes/useWordMeasurements'
 import { buildTraceIndex } from '../lib/trace/buildTraceIndex'
 import type { TraceIndex, TraceLocation } from '../lib/trace/types'
 import { extractVerseText } from '../lib/verseText'
@@ -121,8 +122,11 @@ function VersePage() {
   const { selectedWordIndex, selectWord, clearWordSelection } = useWordSelectionState()
 
   const verseLineContainerRef = useRef<HTMLDivElement | null>(null)
-  const [verseWordRects, setVerseWordRects] = useState<WordRect[]>([])
-  const [verseLineScrollWidth, setVerseLineScrollWidth] = useState(1)
+  const {
+    rects: verseWordRects,
+    contentWidth: verseLineScrollWidth,
+    recalc: recalcWordMeasurements,
+  } = useWordMeasurements(verseLineContainerRef)
 
   const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
   const isKnownRef = useMemo(() => {
@@ -321,40 +325,8 @@ function VersePage() {
   }, [data, ref])
 
   useEffect(() => {
-    const container = verseLineContainerRef.current
-    if (!container) {
-      return
-    }
-
-    let animationFrame = 0
-
-    const measure = () => {
-      animationFrame = 0
-      const spanNodes = [...container.querySelectorAll<HTMLElement>('[data-word-index]')]
-      setVerseWordRects(getWordRects(container, spanNodes))
-      setVerseLineScrollWidth(Math.max(container.scrollWidth, 1))
-    }
-
-    const requestMeasure = () => {
-      if (animationFrame !== 0) {
-        return
-      }
-      animationFrame = window.requestAnimationFrame(measure)
-    }
-
-    requestMeasure()
-    const resizeObserver = new ResizeObserver(() => requestMeasure())
-    resizeObserver.observe(container)
-    container.addEventListener('scroll', requestMeasure, { passive: true })
-
-    return () => {
-      resizeObserver.disconnect()
-      container.removeEventListener('scroll', requestMeasure)
-      if (animationFrame !== 0) {
-        window.cancelAnimationFrame(animationFrame)
-      }
-    }
-  }, [verseWords])
+    recalcWordMeasurements()
+  }, [recalcWordMeasurements, verseWords])
 
   const traceModel = useMemo(() => {
     if (!data) {
