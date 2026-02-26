@@ -34,11 +34,8 @@
 }
 
 .scope-span-tooltip {
-  position: absolute;
-  bottom: -1.25rem;
-  transform: translateX(-50%);
+  margin-top: 0.2rem;
   pointer-events: auto;
-  z-index: 3;
   border: 1px solid var(--neutral-border);
   background: var(--neutral-surface-1);
   color: var(--neutral-text);

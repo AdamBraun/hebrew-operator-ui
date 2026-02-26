@@ -79,13 +79,7 @@ function ScopeLanesHeader({
     if (!hoveredSpan || rects.length === 0) {
       return null
     }
-    const startRect = rects.find((rect) => rect.index === hoveredSpan.startWord)
-    const endRect = rects.find((rect) => rect.index === hoveredSpan.endWord)
-    if (!startRect || !endRect) {
-      return null
-    }
     return {
-      x: (startRect.left + endRect.right) / 2,
       label: `Chunk rank ${hoveredSpan.rank}: words ${hoveredSpan.startWord}–${hoveredSpan.endWord}`,
     }
   }, [hoveredSpan, rects])
@@ -165,7 +159,6 @@ function ScopeLanesHeader({
         onPreviewSpan={(spanSelection) => setHoveredSpan(spanSelection)}
       />
       <ScopeSpanTooltip
-        x={tooltip?.x ?? 0}
         text={tooltip?.label ?? ''}
         visible={tooltip !== null}
         copyValue={mode === 'research' ? hoverSpanRef : undefined}

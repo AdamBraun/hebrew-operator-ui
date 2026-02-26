@@ -1,18 +1,17 @@
 type ScopeSpanTooltipProps = {
-  x: number
   text: string
   visible: boolean
   copyValue?: string
   onCopy?: (value: string) => void
 }
 
-function ScopeSpanTooltip({ x, text, visible, copyValue, onCopy }: ScopeSpanTooltipProps) {
+function ScopeSpanTooltip({ text, visible, copyValue, onCopy }: ScopeSpanTooltipProps) {
   if (!visible) {
     return null
   }
 
   return (
-    <div className="scope-span-tooltip" style={{ left: `${x}px` }}>
+    <div className="scope-span-tooltip">
       <span className="scope-span-tooltip__text" role="status" aria-live="polite">
         {text}
       </span>
