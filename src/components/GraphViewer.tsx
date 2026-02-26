@@ -11,6 +11,7 @@ type GraphViewerProps = {
   dot: string
   onNodeClick?: (handleId: string) => void
   onTokenClick?: (token: string, matchTokens?: string[]) => void
+  onEntityClick?: (entity: ClickedGraphEntity) => void
   className?: string
 }
 
@@ -164,6 +165,7 @@ function bindDelegatedGraphClickHandler(
   container: HTMLDivElement,
   onNodeClickRef: MutableRefObject<GraphViewerProps['onNodeClick']>,
   onTokenClickRef: MutableRefObject<GraphViewerProps['onTokenClick']>,
+  onEntityClickRef: MutableRefObject<GraphViewerProps['onEntityClick']>,
   onEntityClick: (entity: ClickedGraphEntity | null) => void
 ): () => void {
   function onContainerClick(event: MouseEvent) {
@@ -172,6 +174,8 @@ function bindDelegatedGraphClickHandler(
     if (!entity) {
       return
     }
+
+    onEntityClickRef.current?.(entity)
 
     if (entity.kind !== 'node') {
       return
@@ -333,7 +337,13 @@ function bindPanZoomHandlers(
   }
 }
 
-function GraphViewer({ dot, onNodeClick, onTokenClick, className }: GraphViewerProps) {
+function GraphViewer({
+  dot,
+  onNodeClick,
+  onTokenClick,
+  onEntityClick,
+  className,
+}: GraphViewerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const graphvizRef = useRef<GraphvizRenderer | null>(null)
   const panZoomCleanupRef = useRef<(() => void) | null>(null)
@@ -344,6 +354,7 @@ function GraphViewer({ dot, onNodeClick, onTokenClick, className }: GraphViewerP
   const viewportRef = useRef<SVGGElement | null>(null)
   const onNodeClickRef = useRef<GraphViewerProps['onNodeClick']>(onNodeClick)
   const onTokenClickRef = useRef<GraphViewerProps['onTokenClick']>(onTokenClick)
+  const onEntityClickRef = useRef<GraphViewerProps['onEntityClick']>(onEntityClick)
   const [lastClickedEntity, setLastClickedEntity] = useState<ClickedGraphEntity | null>(
     null
   )
@@ -358,6 +369,7 @@ function GraphViewer({ dot, onNodeClick, onTokenClick, className }: GraphViewerP
 
   onNodeClickRef.current = onNodeClick
   onTokenClickRef.current = onTokenClick
+  onEntityClickRef.current = onEntityClick
 
   useEffect(() => {
     const container = containerRef.current
@@ -369,6 +381,7 @@ function GraphViewer({ dot, onNodeClick, onTokenClick, className }: GraphViewerP
       container,
       onNodeClickRef,
       onTokenClickRef,
+      onEntityClickRef,
       setLastClickedEntity
     )
     return () => {

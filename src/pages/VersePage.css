@@ -99,6 +99,23 @@
   margin-top: 0;
 }
 
+.verse-page__resolver {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+.verse-page__resolver-select {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.verse-page__resolver-select select {
+  width: 100%;
+}
+
 @media (max-width: 900px) {
   .verse-page__split {
     grid-template-columns: 1fr;

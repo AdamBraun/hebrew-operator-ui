@@ -147,24 +147,91 @@ function eventFields(event: unknown): Array<{ key: string; value: string }> {
   return fields.slice(0, 6)
 }
 
-function toEventIndex(location: TraceLocation | undefined): number | null {
-  if (!location || location.kind !== 'event') {
+function eventTau(event: unknown): number | null {
+  if (!isRecord(event)) {
     return null
   }
 
-  if (!Number.isInteger(location.index) || location.index < 0) {
+  const tau = event.tau
+  if (typeof tau === 'number' && Number.isFinite(tau)) {
+    return tau
+  }
+
+  return null
+}
+
+function eventWordIndex(event: unknown): number | null {
+  if (!isRecord(event)) {
+    return null
+  }
+
+  const direct = event.wordIndex
+  if (typeof direct === 'number' && Number.isFinite(direct)) {
+    return direct
+  }
+
+  const data = event.data
+  if (!isRecord(data)) {
+    return null
+  }
+
+  const fromData = data.wordIndex
+  if (typeof fromData === 'number' && Number.isFinite(fromData)) {
+    return fromData
+  }
+
+  const fromDataSnake = data.word_index
+  if (typeof fromDataSnake === 'number' && Number.isFinite(fromDataSnake)) {
+    return fromDataSnake
+  }
+
+  return null
+}
+
+function toEventIndex(
+  location: TraceLocation | undefined,
+  events: readonly unknown[]
+): number | null {
+  if (!location) {
+    return null
+  }
+
+  if (location.kind === 'event') {
+    if (!Number.isInteger(location.index) || location.index < 0) {
+      return null
+    }
+    return location.index < events.length ? location.index : null
+  }
+
+  if (location.tau !== undefined) {
+    const tauMatch = events.findIndex((event) => eventTau(event) === location.tau)
+    if (tauMatch >= 0) {
+      return tauMatch
+    }
+  }
+
+  if (location.wordIndex !== undefined) {
+    const wordIndexMatch = events.findIndex(
+      (event) => eventWordIndex(event) === location.wordIndex
+    )
+    if (wordIndexMatch >= 0) {
+      return wordIndexMatch
+    }
+  }
+
+  if (!Number.isInteger(location.index) || location.index < 0 || location.index >= events.length) {
     return null
   }
 
   return location.index
 }
 
-function eventIndices(locations: readonly TraceLocation[]): number[] {
+function eventIndices(locations: readonly TraceLocation[], events: readonly unknown[]): number[] {
   const out: number[] = []
   const seen = new Set<number>()
 
   for (const location of locations) {
-    const index = toEventIndex(location)
+    const index = toEventIndex(location, events)
     if (index === null || seen.has(index)) {
       continue
     }
@@ -182,21 +249,22 @@ function TraceEventViewer({
   alternatives = [],
 }: TraceEventViewerProps) {
   const sequence = useMemo(() => getEventSequence(traceJson), [traceJson])
+  const events = sequence.events ?? []
   const selectedEventIndex = useMemo(() => {
-    const direct = toEventIndex(primary)
+    const direct = toEventIndex(primary, events)
     if (direct !== null) {
       return direct
     }
 
-    return eventIndices(alternatives)[0] ?? null
-  }, [alternatives, primary])
+    return eventIndices(alternatives, events)[0] ?? null
+  }, [alternatives, events, primary])
   const alternativeEventIndexSet = useMemo(() => {
-    const out = new Set<number>(eventIndices(alternatives))
+    const out = new Set<number>(eventIndices(alternatives, events))
     if (selectedEventIndex !== null) {
       out.delete(selectedEventIndex)
     }
     return out
-  }, [alternatives, selectedEventIndex])
+  }, [alternatives, events, selectedEventIndex])
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -232,12 +300,12 @@ function TraceEventViewer({
       <header className="trace-event-viewer__header">
         <h2 className="trace-event-viewer__title">Trace events</h2>
         <p className="trace-event-viewer__meta">
-          Source: <code>{sequence.sourcePath ?? 'unknown'}</code> | count: {sequence.events.length}
+          Source: <code>{sequence.sourcePath ?? 'unknown'}</code> | count: {events.length}
         </p>
       </header>
 
       <div ref={scrollRef} className="trace-event-viewer__scroll" role="region" aria-label="Event cards">
-        {sequence.events.map((event, index) => {
+        {events.map((event, index) => {
           const fields = eventFields(event)
           const isSelected = selectedEventIndex === index
           const isAlternative = alternativeEventIndexSet.has(index)

@@ -7,13 +7,13 @@ import VerseHeader from '../components/VerseHeader'
 import VersePager from '../components/VersePager'
 import VerseText from '../components/VerseText'
 import TraceEventViewer from '../components/TraceEventViewer'
-import { buildTraceIndex } from '../../ui/src/lib/trace/index_trace'
-import type { TraceIndex, TraceJson } from '../../ui/src/lib/trace/types'
-import { resolveEventRefsForHandle } from '../lib/trace/resolveEventRefsForHandle'
+import { resolveGraphSelection } from '../lib/link/resolveGraphSelection'
+import type { GraphSelection } from '../lib/link/types'
+import { buildTraceIndex } from '../lib/trace/buildTraceIndex'
+import type { TraceIndex, TraceLocation } from '../lib/trace/types'
 import { FetchError } from '../lib/fetcher'
 import { getNextRefTiered, getPrevRefTiered } from '../lib/navWalkTiered'
 import { normalizeVerseRef } from '../lib/ref'
-import { resolveHandleIdFromGraphSelection } from '../lib/graphSelection'
 import { useVerseHotkeys } from '../hooks/useVerseHotkeys'
 import { useNavState } from '../state/nav'
 import { loadGraphDot, loadManifest, loadTraceJson, sourceUrlsForRef } from '../lib/source'
@@ -29,8 +29,19 @@ type LoadError = {
 }
 
 type VerseData = {
-  traceJson: TraceJson
+  traceJson: unknown
   graphDot: string | null
+}
+
+function formatLocationLabel(location: TraceLocation): string {
+  const parts = [`${location.kind} #${location.index}`]
+  if (location.tau !== undefined) {
+    parts.push(`tau ${location.tau}`)
+  }
+  if (location.wordIndex !== undefined) {
+    parts.push(`word ${location.wordIndex}`)
+  }
+  return parts.join(' | ')
 }
 
 function firstAvailableRef(nav: NavModel | null): VerseRef | null {
@@ -91,7 +102,8 @@ function VersePage() {
   const [navTransitionLoading, setNavTransitionLoading] = useState(false)
   const [prevRef, setPrevRef] = useState<VerseRef | null>(null)
   const [nextRef, setNextRef] = useState<VerseRef | null>(null)
-  const [selectedHandleId, setSelectedHandleId] = useState<string | null>(null)
+  const [graphSelection, setGraphSelection] = useState<GraphSelection | null>(null)
+  const [selectedMatchIndex, setSelectedMatchIndex] = useState(0)
   const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
   const isKnownRef = useMemo(() => {
     if (!ref || !nav) {
@@ -185,7 +197,8 @@ function VersePage() {
   }, [ensureChapters, ensureVerses, isKnownRef, nav, ref])
 
   useEffect(() => {
-    setSelectedHandleId(null)
+    setGraphSelection(null)
+    setSelectedMatchIndex(0)
   }, [ref?.book, ref?.chapter3, ref?.verse3])
 
   useEffect(() => {
@@ -211,7 +224,7 @@ function VersePage() {
 
       const [manifestResult, traceJsonResult, graphDotResult] = await Promise.allSettled([
         loadManifest({ cache: 'no-cache' }),
-        loadTraceJson<TraceJson>(currentRef, { cache: 'no-cache' }),
+        loadTraceJson(currentRef, { cache: 'no-cache' }),
         loadGraphDot(currentRef, { cache: 'no-cache' }),
       ])
 
@@ -280,40 +293,43 @@ function VersePage() {
     }
   }, [data])
 
-  const highlightedEventIndices = useMemo(() => {
-    return resolveEventRefsForHandle(selectedHandleId, traceModel.traceIndex)
-  }, [selectedHandleId, traceModel.traceIndex])
-
-  const primaryTraceLocation = useMemo(() => {
-    const firstEvent = highlightedEventIndices[0]
-    if (firstEvent === undefined) {
-      return undefined
-    }
-
-    return {
-      kind: 'event' as const,
-      index: firstEvent,
-    }
-  }, [highlightedEventIndices])
-
-  const alternativeTraceLocations = useMemo(
-    () =>
-      highlightedEventIndices.slice(1).map((index) => ({
-        kind: 'event' as const,
-        index,
-      })),
-    [highlightedEventIndices]
+  const resolvedSelection = useMemo(
+    () => resolveGraphSelection(graphSelection, traceModel.traceIndex),
+    [graphSelection, traceModel.traceIndex]
   )
 
+  const rankedLocations = useMemo(() => {
+    if (resolvedSelection.primary) {
+      return [resolvedSelection.primary, ...resolvedSelection.alternatives]
+    }
+    return [...resolvedSelection.alternatives]
+  }, [resolvedSelection])
+
   useEffect(() => {
-    if (!selectedHandleId || !traceModel.traceIndex) {
+    setSelectedMatchIndex(0)
+  }, [graphSelection])
+
+  useEffect(() => {
+    if (rankedLocations.length === 0) {
+      setSelectedMatchIndex(0)
       return
     }
 
-    if (!traceModel.traceIndex.handleById.has(selectedHandleId)) {
-      setSelectedHandleId(null)
+    setSelectedMatchIndex((current) => Math.min(current, rankedLocations.length - 1))
+  }, [rankedLocations.length])
+
+  const primaryTraceLocation = useMemo(() => {
+    if (rankedLocations.length === 0) {
+      return undefined
     }
-  }, [selectedHandleId, traceModel.traceIndex])
+
+    return rankedLocations[selectedMatchIndex]
+  }, [rankedLocations, selectedMatchIndex])
+
+  const alternativeTraceLocations = useMemo(
+    () => rankedLocations.filter((_, index) => index !== selectedMatchIndex),
+    [rankedLocations, selectedMatchIndex]
+  )
 
   function retryLoad() {
     setRetryCount((count) => count + 1)
@@ -391,9 +407,10 @@ function VersePage() {
               <main className="verse-page__split">
                 <section aria-label="Graph" className="verse-page__panel verse-page__panel--graph">
                   <h2>Graph</h2>
-                  {selectedHandleId ? (
+                  {graphSelection ? (
                     <p className="verse-page__error-detail">
-                      Selected handle: <code>{selectedHandleId}</code>
+                      Selection: <code>{graphSelection.kind}</code> <code>{graphSelection.id}</code>{' '}
+                      | confidence <code>{resolvedSelection.confidence}</code>
                     </p>
                   ) : null}
                   {graphError ? (
@@ -409,20 +426,45 @@ function VersePage() {
                   ) : (
                     <GraphViewer
                       dot={data.graphDot ?? ''}
-                      onTokenClick={(token, matchTokens) =>
-                        setSelectedHandleId(
-                          resolveHandleIdFromGraphSelection(
-                            token,
-                            matchTokens,
-                            traceModel.traceIndex
-                          )
-                        )
+                      onEntityClick={(entity) =>
+                        setGraphSelection({
+                          kind: entity.kind,
+                          id: entity.id,
+                          label: entity.label,
+                        })
                       }
                     />
                   )}
                 </section>
 
                 <section aria-label="Trace" className="verse-page__panel verse-page__panel--trace">
+                  {graphSelection ? (
+                    <div className="verse-page__resolver">
+                      <p className="verse-page__error-detail">
+                        Resolver: <code>{resolvedSelection.confidence}</code> | matches{' '}
+                        <code>{rankedLocations.length}</code>
+                      </p>
+                      {rankedLocations.length > 1 ? (
+                        <label className="verse-page__resolver-select">
+                          <span>Alternatives</span>
+                          <select
+                            value={selectedMatchIndex}
+                            onChange={(event) =>
+                              setSelectedMatchIndex(
+                                Number.parseInt(event.target.value, 10) || 0
+                              )
+                            }
+                          >
+                            {rankedLocations.map((location, index) => (
+                              <option key={`${location.kind}-${location.index}-${index}`} value={index}>
+                                {formatLocationLabel(location)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {traceModel.error ? (
                     <>
                       <p role="alert" className="verse-page__panel-alert">
