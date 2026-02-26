@@ -1,0 +1,24 @@
+:root {
+  --semantic-seam-hard: var(--p-accent-4);
+  --semantic-seam-glue: var(--p-accent-2);
+  --semantic-seam-glue-maqqef: var(--p-accent-3);
+  --semantic-seam-cut-1: var(--p-accent);
+  --semantic-seam-cut-2: var(--p-accent-5);
+  --semantic-seam-cut-3: var(--p-accent-6);
+
+  --semantic-node-scope: var(--p-accent);
+  --semantic-node-handle: var(--p-accent-2);
+  --semantic-node-boundary: var(--p-accent-5);
+  --semantic-node-rule: var(--p-accent-7);
+
+  --semantic-edge-link: var(--p-accent-3);
+  --semantic-edge-carry: var(--p-accent-4);
+  --semantic-edge-trope: var(--p-accent-6);
+
+  --semantic-state-warning: var(--p-warning-1);
+  --semantic-state-error: var(--p-error-1);
+
+  --semantic-select-primary: var(--p-select-primary);
+  --semantic-select-related: var(--p-select-related);
+  --semantic-dim-inactive: var(--p-dim-inactive);
+}

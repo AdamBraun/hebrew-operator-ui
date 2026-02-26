@@ -1,0 +1,175 @@
+:where(:root:not([data-skin]), :root[data-skin='cool']) {
+  --p-accent: #2c7de0;
+  --p-accent-2: #0f87c7;
+  --p-accent-3: #0f8a86;
+  --p-accent-4: #4658d8;
+  --p-accent-5: #2a5db7;
+  --p-accent-6: #2f8f7a;
+  --p-accent-7: #256f9c;
+  --p-warning-1: #ad6c00;
+  --p-error-1: #b4233c;
+  --p-select-primary: #006dd6;
+  --p-select-primary-glow: rgba(0, 109, 214, 0.28);
+  --p-select-related: #3f59ae;
+  --p-dim-inactive: rgba(17, 26, 38, 0.35);
+  --p-tint-accent: #e8f2ff;
+  --p-tint-warning: #fff2d9;
+  --p-tint-error: #ffe7eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :where(
+    :root:not([data-skin]):not([data-theme='light']),
+    :root[data-skin='cool']:not([data-theme='light'])
+  ) {
+    --p-accent: #78b7ff;
+    --p-accent-2: #63cbff;
+    --p-accent-3: #58d3c8;
+    --p-accent-4: #a0a9ff;
+    --p-accent-5: #89b3ff;
+    --p-accent-6: #74d4b5;
+    --p-accent-7: #7bc3f5;
+    --p-warning-1: #f2ba69;
+    --p-error-1: #ff96a3;
+    --p-select-primary: #74ccff;
+    --p-select-primary-glow: rgba(116, 204, 255, 0.34);
+    --p-select-related: #b5bdfc;
+    --p-dim-inactive: rgba(237, 242, 248, 0.38);
+    --p-tint-accent: #1f2e44;
+    --p-tint-warning: #3b2d18;
+    --p-tint-error: #40202a;
+  }
+}
+
+:where(
+  :root:not([data-skin])[data-theme='light'],
+  :root[data-skin='cool'][data-theme='light']
+) {
+  --p-accent: #2c7de0;
+  --p-accent-2: #0f87c7;
+  --p-accent-3: #0f8a86;
+  --p-accent-4: #4658d8;
+  --p-accent-5: #2a5db7;
+  --p-accent-6: #2f8f7a;
+  --p-accent-7: #256f9c;
+  --p-warning-1: #ad6c00;
+  --p-error-1: #b4233c;
+  --p-select-primary: #006dd6;
+  --p-select-primary-glow: rgba(0, 109, 214, 0.28);
+  --p-select-related: #3f59ae;
+  --p-dim-inactive: rgba(17, 26, 38, 0.35);
+  --p-tint-accent: #e8f2ff;
+  --p-tint-warning: #fff2d9;
+  --p-tint-error: #ffe7eb;
+}
+
+:where(
+  :root:not([data-skin])[data-theme='dark'],
+  :root[data-skin='cool'][data-theme='dark']
+) {
+  --p-accent: #78b7ff;
+  --p-accent-2: #63cbff;
+  --p-accent-3: #58d3c8;
+  --p-accent-4: #a0a9ff;
+  --p-accent-5: #89b3ff;
+  --p-accent-6: #74d4b5;
+  --p-accent-7: #7bc3f5;
+  --p-warning-1: #f2ba69;
+  --p-error-1: #ff96a3;
+  --p-select-primary: #74ccff;
+  --p-select-primary-glow: rgba(116, 204, 255, 0.34);
+  --p-select-related: #b5bdfc;
+  --p-dim-inactive: rgba(237, 242, 248, 0.38);
+  --p-tint-accent: #1f2e44;
+  --p-tint-warning: #3b2d18;
+  --p-tint-error: #40202a;
+}
+
+@supports (color: oklch(0.7 0.1 120)) {
+  :where(:root:not([data-skin]), :root[data-skin='cool']) {
+    --p-accent: oklch(0.61 0.15 251);
+    --p-accent-2: oklch(0.63 0.12 231);
+    --p-accent-3: oklch(0.63 0.1 193);
+    --p-accent-4: oklch(0.58 0.14 272);
+    --p-accent-5: oklch(0.54 0.12 253);
+    --p-accent-6: oklch(0.64 0.1 171);
+    --p-accent-7: oklch(0.55 0.09 232);
+    --p-warning-1: oklch(0.62 0.12 70);
+    --p-error-1: oklch(0.56 0.17 20);
+    --p-select-primary: oklch(0.58 0.16 247);
+    --p-select-primary-glow: oklch(0.58 0.16 247 / 0.28);
+    --p-select-related: oklch(0.51 0.1 271);
+    --p-dim-inactive: oklch(0.22 0.02 255 / 0.35);
+    --p-tint-accent: oklch(0.95 0.02 247);
+    --p-tint-warning: oklch(0.95 0.03 80);
+    --p-tint-error: oklch(0.94 0.03 20);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :where(
+      :root:not([data-skin]):not([data-theme='light']),
+      :root[data-skin='cool']:not([data-theme='light'])
+    ) {
+      --p-accent: oklch(0.79 0.1 251);
+      --p-accent-2: oklch(0.81 0.09 231);
+      --p-accent-3: oklch(0.82 0.08 193);
+      --p-accent-4: oklch(0.78 0.09 272);
+      --p-accent-5: oklch(0.78 0.08 253);
+      --p-accent-6: oklch(0.82 0.07 171);
+      --p-accent-7: oklch(0.79 0.07 232);
+      --p-warning-1: oklch(0.83 0.08 80);
+      --p-error-1: oklch(0.78 0.11 20);
+      --p-select-primary: oklch(0.83 0.09 247);
+      --p-select-primary-glow: oklch(0.83 0.09 247 / 0.34);
+      --p-select-related: oklch(0.82 0.06 271);
+      --p-dim-inactive: oklch(0.94 0.01 255 / 0.38);
+      --p-tint-accent: oklch(0.31 0.03 247);
+      --p-tint-warning: oklch(0.35 0.03 80);
+      --p-tint-error: oklch(0.32 0.03 20);
+    }
+  }
+
+  :where(
+    :root:not([data-skin])[data-theme='light'],
+    :root[data-skin='cool'][data-theme='light']
+  ) {
+    --p-accent: oklch(0.61 0.15 251);
+    --p-accent-2: oklch(0.63 0.12 231);
+    --p-accent-3: oklch(0.63 0.1 193);
+    --p-accent-4: oklch(0.58 0.14 272);
+    --p-accent-5: oklch(0.54 0.12 253);
+    --p-accent-6: oklch(0.64 0.1 171);
+    --p-accent-7: oklch(0.55 0.09 232);
+    --p-warning-1: oklch(0.62 0.12 70);
+    --p-error-1: oklch(0.56 0.17 20);
+    --p-select-primary: oklch(0.58 0.16 247);
+    --p-select-primary-glow: oklch(0.58 0.16 247 / 0.28);
+    --p-select-related: oklch(0.51 0.1 271);
+    --p-dim-inactive: oklch(0.22 0.02 255 / 0.35);
+    --p-tint-accent: oklch(0.95 0.02 247);
+    --p-tint-warning: oklch(0.95 0.03 80);
+    --p-tint-error: oklch(0.94 0.03 20);
+  }
+
+  :where(
+    :root:not([data-skin])[data-theme='dark'],
+    :root[data-skin='cool'][data-theme='dark']
+  ) {
+    --p-accent: oklch(0.79 0.1 251);
+    --p-accent-2: oklch(0.81 0.09 231);
+    --p-accent-3: oklch(0.82 0.08 193);
+    --p-accent-4: oklch(0.78 0.09 272);
+    --p-accent-5: oklch(0.78 0.08 253);
+    --p-accent-6: oklch(0.82 0.07 171);
+    --p-accent-7: oklch(0.79 0.07 232);
+    --p-warning-1: oklch(0.83 0.08 80);
+    --p-error-1: oklch(0.78 0.11 20);
+    --p-select-primary: oklch(0.83 0.09 247);
+    --p-select-primary-glow: oklch(0.83 0.09 247 / 0.34);
+    --p-select-related: oklch(0.82 0.06 271);
+    --p-dim-inactive: oklch(0.94 0.01 255 / 0.38);
+    --p-tint-accent: oklch(0.31 0.03 247);
+    --p-tint-warning: oklch(0.35 0.03 80);
+    --p-tint-error: oklch(0.32 0.03 20);
+  }
+}

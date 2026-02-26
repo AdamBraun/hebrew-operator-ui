@@ -40,7 +40,7 @@
 }
 
 .trace-viewer__line--highlight {
-  background: #fff3cd;
+  background: var(--p-tint-accent);
 }
 
 .trace-viewer__line-number {

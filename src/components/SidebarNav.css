@@ -50,7 +50,7 @@
 }
 
 .sidebar-nav__verse--active {
-  border-color: #2563eb;
-  background: #dbeafe;
+  border-color: var(--semantic-select-primary);
+  background: var(--p-tint-accent);
   font-weight: 600;
 }

@@ -44,13 +44,13 @@
 }
 
 .trace-event-viewer__card--selected {
-  border-color: #0ea5e9;
-  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+  border-color: var(--semantic-select-primary);
+  box-shadow: 0 0 0 2px var(--p-select-primary-glow);
 }
 
 .trace-event-viewer__card--alternative {
-  border-color: #f59e0b;
-  background: #fffbeb;
+  border-color: var(--semantic-state-warning);
+  background: var(--p-tint-warning);
 }
 
 .trace-event-viewer__card-header {
@@ -74,13 +74,13 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.01em;
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--p-tint-accent);
+  color: var(--semantic-node-handle);
 }
 
 .trace-event-viewer__badge--alt {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--p-tint-warning);
+  color: var(--semantic-state-warning);
 }
 
 .trace-event-viewer__fields {
@@ -123,10 +123,10 @@
 }
 
 .trace-event-viewer__error-panel {
-  border: 1px solid #fecaca;
+  border: 1px solid var(--semantic-state-error);
   border-radius: 8px;
-  background: #fff1f2;
-  color: #881337;
+  background: var(--p-tint-error);
+  color: var(--semantic-state-error);
   padding: 0.75rem;
 }
 
