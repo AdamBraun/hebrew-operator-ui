@@ -3,6 +3,18 @@
   margin-bottom: 0.75rem;
 }
 
+.scope-lanes-header__line {
+  direction: rtl;
+  unicode-bidi: isolate;
+  text-align: start;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.1rem 0 0.45rem;
+  scrollbar-width: thin;
+  outline: none;
+}
+
 .scope-lanes-header__inspect-tools {
   display: flex;
   flex-wrap: wrap;
@@ -31,6 +43,95 @@
   border-radius: 999px;
   padding: 0.15rem 0.5rem;
   background: var(--neutral-surface-1);
+}
+
+.scope-lanes-header__gap {
+  display: inline;
+}
+
+.scope-lane {
+  display: inline-block;
+  border-left: 1px solid color-mix(in srgb, var(--neutral-border) 66%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--neutral-border) 66%, transparent);
+  border-bottom: 2px solid color-mix(in srgb, var(--neutral-border) 66%, transparent);
+  border-top: 0;
+  border-radius: 0 0 0.42rem 0.42rem;
+  background: transparent;
+  padding-inline: 0.16rem;
+  padding-top: 0;
+}
+
+.scope-lane--rank-3 {
+  padding-bottom: 0.42rem;
+}
+
+.scope-lane--rank-2 {
+  padding-bottom: 0.25rem;
+}
+
+.scope-lane--rank-1 {
+  padding-bottom: 0.11rem;
+}
+
+.scope-lane--hovered {
+  border-color: var(--edge-link);
+}
+
+.scope-lane--related {
+  border-color: var(--select-related);
+}
+
+.scope-lane--selected {
+  border-color: var(--select-primary);
+  box-shadow: 0 0 0 2px var(--p-select-primary-glow);
+}
+
+.scope-lanes-header--color-by-rank .scope-lane--rank-3 {
+  border-left-color: color-mix(in srgb, var(--seam-cut-3) 78%, transparent);
+  border-right-color: color-mix(in srgb, var(--seam-cut-3) 78%, transparent);
+  border-bottom-color: var(--seam-cut-3);
+}
+
+.scope-lanes-header--color-by-rank .scope-lane--rank-2 {
+  border-left-color: color-mix(in srgb, var(--seam-cut-2) 78%, transparent);
+  border-right-color: color-mix(in srgb, var(--seam-cut-2) 78%, transparent);
+  border-bottom-color: var(--seam-cut-2);
+}
+
+.scope-lanes-header--color-by-rank .scope-lane--rank-1 {
+  border-left-color: color-mix(in srgb, var(--seam-cut-1) 78%, transparent);
+  border-right-color: color-mix(in srgb, var(--seam-cut-1) 78%, transparent);
+  border-bottom-color: var(--seam-cut-1);
+}
+
+.scope-lanes-header--color-by-rank .scope-lane--hovered {
+  border-color: var(--edge-link);
+}
+
+.scope-lanes-header--color-by-rank .scope-lane--related {
+  border-color: var(--select-related);
+}
+
+.scope-lanes-header--color-by-rank .scope-lane--selected {
+  border-color: var(--select-primary);
+}
+
+.scope-lanes-header__word {
+  display: inline;
+  background: var(--neutral-bg);
+  border-radius: 0.25rem;
+  padding-inline: 0.04rem;
+  cursor: pointer;
+}
+
+.scope-lanes-header__word:hover {
+  background: color-mix(in srgb, var(--neutral-surface-2) 85%, var(--select-related) 15%);
+}
+
+.scope-lanes-header__word--selected {
+  background: color-mix(in srgb, var(--neutral-surface-2) 80%, var(--select-primary) 20%);
+  outline: 1px solid var(--select-primary);
+  outline-offset: 1px;
 }
 
 .scope-span-tooltip {

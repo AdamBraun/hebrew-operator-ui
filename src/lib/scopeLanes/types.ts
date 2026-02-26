@@ -15,6 +15,8 @@ export type VerseWord = {
 export type BoundaryAfterWord = {
   wordIndex: number
   kind: BoundaryKind
+  tropeName?: string
+  tropeRank?: number
 }
 
 export type LaneRank = 3 | 2 | 1

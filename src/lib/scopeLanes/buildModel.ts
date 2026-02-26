@@ -5,6 +5,7 @@ const CLEANED_LINE_RE = /^\s*(cleaned(?:_text)?|verse|text)\s*:\s*(.+?)\s*$/iu
 const WORD_LINE_RE = /^\s*WORD\s+(\d+)\s*[│|]\s*([^│|]+?)\s*[│|]/u
 const EXIT_TOKEN_RE = /\bexit\s*=\s*□([^\s│|]+)/iu
 const EXIT_KIND_RE = /\bexit_kind\s*=\s*([a-z_]+)/iu
+const TRAILING_PUNCTUATION_RE = /([׃:;,.!?]+)\s*$/u
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -25,7 +26,7 @@ function toFiniteNumber(value: unknown): number | undefined {
   return undefined
 }
 
-function extractWordsFromCleanedLine(traceTxt: string): string[] {
+function readCleanedLikeLine(traceTxt: string): string | undefined {
   for (const line of traceTxt.split(/\r?\n/u)) {
     const match = line.match(CLEANED_LINE_RE)
     if (!match) {
@@ -33,17 +34,24 @@ function extractWordsFromCleanedLine(traceTxt: string): string[] {
     }
 
     const cleaned = match[2].trim()
-    if (cleaned.length === 0) {
-      continue
+    if (cleaned.length > 0) {
+      return cleaned
     }
-
-    return cleaned
-      .split(/\s+/u)
-      .map((word) => word.trim())
-      .filter((word) => word.length > 0)
   }
 
-  return []
+  return undefined
+}
+
+function extractWordsFromCleanedLine(traceTxt: string): string[] {
+  const cleaned = readCleanedLikeLine(traceTxt)
+  if (!cleaned) {
+    return []
+  }
+
+  return cleaned
+    .split(/\s+/u)
+    .map((word) => word.trim())
+    .filter((word) => word.length > 0)
 }
 
 function extractWordsFromWordRows(traceTxt: string): string[] {
@@ -130,10 +138,15 @@ function boundaryKindFromDescriptor(descriptor: string, rank?: number): Boundary
   return 'unknown'
 }
 
+type JsonBoundaryExtraction = {
+  kinds: BoundaryKind[]
+  tropeMetaByIndex: Map<number, { tropeName?: string; tropeRank?: number }>
+}
+
 function deriveBoundariesFromTraceJson(
   traceJson: unknown,
   wordCount: number
-): BoundaryKind[] | null {
+): JsonBoundaryExtraction | null {
   if (!isRecord(traceJson)) {
     return null
   }
@@ -144,6 +157,7 @@ function deriveBoundariesFromTraceJson(
   }
 
   const boundaries = Array.from({ length: wordCount }, () => 'unknown' as BoundaryKind)
+  const tropeMetaByIndex = new Map<number, { tropeName?: string; tropeRank?: number }>()
   let foundAny = false
 
   for (let i = 0; i < sections.length; i += 1) {
@@ -173,10 +187,19 @@ function deriveBoundariesFromTraceJson(
 
     const rank = toFiniteNumber(boundary?.rank) ?? toFiniteNumber(exitBoundary?.rank)
     boundaries[index - 1] = boundaryKindFromDescriptor(descriptor, rank)
+    const leftTrope = isRecord(boundary?.left_trope) ? boundary.left_trope : null
+    const tropeName =
+      leftTrope && typeof leftTrope.name === 'string' && leftTrope.name.trim().length > 0
+        ? leftTrope.name.trim()
+        : undefined
+    const tropeRank = toFiniteNumber(leftTrope?.rank)
+    if (tropeName !== undefined || tropeRank !== undefined) {
+      tropeMetaByIndex.set(index, { tropeName, tropeRank })
+    }
     foundAny = true
   }
 
-  return foundAny ? boundaries : null
+  return foundAny ? { kinds: boundaries, tropeMetaByIndex } : null
 }
 
 function deriveBoundariesFromTraceTxt(traceTxt: string, wordCount: number): BoundaryKind[] {
@@ -218,18 +241,29 @@ export function buildScopeLanesModel(
   traceTxt: string,
   traceJson?: unknown
 ): ScopeLanesModel {
-  const wordsFromCleaned = extractWordsFromCleanedLine(traceTxt)
-  const words =
-    wordsFromCleaned.length > 0 ? wordsFromCleaned : extractWordsFromWordRows(traceTxt)
+  const wordsFromRows = extractWordsFromWordRows(traceTxt)
+  const words = (
+    wordsFromRows.length > 0 ? wordsFromRows : extractWordsFromCleanedLine(traceTxt)
+  ).slice()
+
+  const cleanedLine = readCleanedLikeLine(traceTxt)
+  if (wordsFromRows.length > 0 && words.length > 0 && cleanedLine) {
+    const trailingPunctuation = cleanedLine.match(TRAILING_PUNCTUATION_RE)?.[1]
+    if (trailingPunctuation && !words[words.length - 1].endsWith(trailingPunctuation)) {
+      words[words.length - 1] = `${words[words.length - 1]}${trailingPunctuation}`
+    }
+  }
 
   const wordCount = words.length
   let boundaries: BoundaryKind[] = deriveBoundariesFromTraceTxt(traceTxt, wordCount)
+  let tropeMetaByIndex = new Map<number, { tropeName?: string; tropeRank?: number }>()
 
   if (traceJson !== undefined) {
     try {
       const fromJson = deriveBoundariesFromTraceJson(traceJson, wordCount)
       if (fromJson) {
-        boundaries = fromJson
+        boundaries = fromJson.kinds
+        tropeMetaByIndex = fromJson.tropeMetaByIndex
       }
     } catch {
       // Keep trace.txt-derived boundaries on json extraction failures.
@@ -239,11 +273,17 @@ export function buildScopeLanesModel(
   return {
     ref,
     words: words.map((text, index) => ({ index: index + 1, text })),
-    boundariesAfter: boundaries.map((kind, i) => ({ wordIndex: i + 1, kind })),
+    boundariesAfter: boundaries.map((kind, i) => {
+      const wordIndex = i + 1
+      return {
+        wordIndex,
+        kind,
+        ...tropeMetaByIndex.get(wordIndex),
+      }
+    }),
     lanes: {
       rank3: [],
       rank2: [],
     },
   }
 }
-

@@ -48,8 +48,8 @@ export function buildLanePaths(
       continue
     }
 
-    const x1 = Math.min(startRect.left, endRect.right)
-    const x2 = Math.max(startRect.left, endRect.right)
+    const x1 = Math.min(startRect.left, endRect.left)
+    const x2 = Math.max(startRect.right, endRect.right)
     const rank = span.rank
     const y = baseline + offsets[rank]
     const d = `M ${x1} ${y - capHeight} V ${y} H ${x2} V ${y - capHeight}`
@@ -68,4 +68,3 @@ export function buildLanePaths(
 
   return paths
 }
-

@@ -49,11 +49,11 @@ type ScopeHeaderPreferences = {
   colorByRank: boolean
 }
 
-const SCOPE_HEADER_PREFS_KEY = 'scope-lanes-header-prefs.v1'
+const SCOPE_HEADER_PREFS_KEY = 'scope-lanes-header-prefs.v2'
 const DEFAULT_SCOPE_HEADER_PREFERENCES: ScopeHeaderPreferences = {
   mode: 'lite',
   showFineLane: false,
-  colorByRank: false,
+  colorByRank: true,
 }
 
 function loadScopeHeaderPreferences(): ScopeHeaderPreferences {
@@ -542,7 +542,6 @@ function VersePage() {
                       <input
                         type="checkbox"
                         checked={scopeHeaderPreferences.colorByRank}
-                        disabled={scopeHeaderPreferences.mode !== 'research'}
                         onChange={(event) =>
                           setScopeHeaderPreferences((current) => ({
                             ...current,
@@ -556,9 +555,7 @@ function VersePage() {
                   <ScopeLanesHeader
                     model={scopeLanesModel}
                     mode={scopeHeaderPreferences.mode}
-                    colorByRank={
-                      scopeHeaderPreferences.mode === 'research' && scopeHeaderPreferences.colorByRank
-                    }
+                    colorByRank={scopeHeaderPreferences.colorByRank}
                     showWordIndexOnHover={scopeHeaderPreferences.mode === 'research'}
                     selection={scopeSelection}
                     onSelect={(selection) => {

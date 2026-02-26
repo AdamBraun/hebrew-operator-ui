@@ -96,5 +96,50 @@ describe('buildScopeLanesModel', () => {
     expect(model.boundariesAfter).toHaveLength(3)
     expect(model.boundariesAfter.every((boundary) => boundary.kind === 'unknown')).toBe(true)
   })
-})
 
+  it('prefers WORD rows over cleaned whitespace splits (maqqef-safe indexing)', () => {
+    const traceTxt = [
+      'ref: exodus/029/034',
+      'cleaned: וְאִם־יִוָּתֵר מִבְּשַׂר הַמִּלֻּאִים',
+      'WORD 1 │ וְאִם │ exit_kind=glue_maqqef │ exit=□glue_maqqef',
+      'WORD 2 │ יִוָּתֵר │ exit_kind=cut │ exit=□cut(1)',
+      'WORD 3 │ מִבְּשַׂר │ exit_kind=glue │ exit=□glue',
+      'WORD 4 │ הַמִּלֻּאִים │ exit_kind=cut │ exit=□cut(1)',
+    ].join('\n')
+
+    const model = buildScopeLanesModel(
+      { book: 'exodus', chapter3: '029', verse3: '034' },
+      traceTxt
+    )
+
+    expect(model.words.map((word) => word.text)).toEqual([
+      'וְאִם',
+      'יִוָּתֵר',
+      'מִבְּשַׂר',
+      'הַמִּלֻּאִים',
+    ])
+    expect(model.boundariesAfter.map((boundary) => boundary.kind)).toEqual([
+      'glue_maqqef',
+      'cut_1',
+      'glue',
+      'cut_1',
+    ])
+  })
+
+  it('preserves trailing pasuk punctuation when using WORD rows', () => {
+    const traceTxt = [
+      'ref: exodus/029/034',
+      'cleaned: א ב ג׃',
+      'WORD 1 │ א │ exit_kind=glue │ exit=□glue',
+      'WORD 2 │ ב │ exit_kind=glue │ exit=□glue',
+      'WORD 3 │ ג │ exit_kind=cut │ exit=□cut(3)',
+    ].join('\n')
+
+    const model = buildScopeLanesModel(
+      { book: 'exodus', chapter3: '029', verse3: '034' },
+      traceTxt
+    )
+
+    expect(model.words.map((word) => word.text)).toEqual(['א', 'ב', 'ג׃'])
+  })
+})

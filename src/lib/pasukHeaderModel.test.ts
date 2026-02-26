@@ -156,5 +156,5 @@ describe('pasukHeaderModel', () => {
     })
     expect(model.words.map((word) => word.seamAfter)).toEqual(['unknown', 'unknown'])
   })
-})
 
+})

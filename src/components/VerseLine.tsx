@@ -24,15 +24,28 @@ export function getWordRects(
   wordSpans: HTMLElement[]
 ): WordRect[] {
   const containerRect = container.getBoundingClientRect()
-
-  return wordSpans.map((span, i) => {
+  const localRects = wordSpans.map((span) => {
     const rect = span.getBoundingClientRect()
     return {
+      left: rect.left - containerRect.left,
+      right: rect.right - containerRect.left,
+      top: rect.top - containerRect.top,
+      bottom: rect.bottom - containerRect.top,
+    }
+  })
+  const minLeft = localRects.reduce(
+    (min, rect) => Math.min(min, rect.left),
+    Number.POSITIVE_INFINITY
+  )
+  const offsetX = Number.isFinite(minLeft) ? -minLeft : 0
+
+  return localRects.map((rect, i) => {
+    return {
       index: i + 1,
-      left: rect.left - containerRect.left + container.scrollLeft,
-      right: rect.right - containerRect.left + container.scrollLeft,
-      top: rect.top - containerRect.top + container.scrollTop,
-      bottom: rect.bottom - containerRect.top + container.scrollTop,
+      left: rect.left + offsetX,
+      right: rect.right + offsetX,
+      top: rect.top,
+      bottom: rect.bottom,
     }
   })
 }

@@ -24,5 +24,21 @@ describe('buildLanePaths', () => {
     })
     expect(paths[0].d).toBe('M 10 32 V 38 H 95 V 32')
   })
-})
 
+  it('uses full word extents for RTL-like coordinates', () => {
+    const rects = [
+      { index: 1, left: 300, right: 360, top: 0, bottom: 20 },
+      { index: 2, left: 220, right: 280, top: 0, bottom: 20 },
+      { index: 3, left: 120, right: 200, top: 0, bottom: 20 },
+    ]
+    const spans = [{ rank: 3 as const, startWord: 1, endWord: 3 }]
+
+    const paths = buildLanePaths(spans, rects)
+
+    expect(paths).toHaveLength(1)
+    expect(paths[0]).toMatchObject({
+      x1: 120,
+      x2: 360,
+    })
+  })
+})
