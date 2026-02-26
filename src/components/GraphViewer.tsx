@@ -36,6 +36,7 @@ const RENDER_DEBOUNCE_MS = 150
 const LARGE_DOT_WARNING_THRESHOLD = 500_000
 const MIN_SCALE = 0.25
 const MAX_SCALE = 8
+const DRAG_CLICK_SUPPRESS_PX = 4
 const NODE_SEMANTICS = ['scope', 'handle', 'boundary', 'rule'] as const
 const EDGE_SEMANTICS = ['link', 'carry', 'trope'] as const
 
@@ -336,15 +337,21 @@ function bindDelegatedGraphClickHandler(
   onNodeClickRef: MutableRefObject<GraphViewerProps['onNodeClick']>,
   onTokenClickRef: MutableRefObject<GraphViewerProps['onTokenClick']>,
   onEntityClickRef: MutableRefObject<GraphViewerProps['onEntityClick']>,
+  suppressNextClickRef: MutableRefObject<boolean>,
   onEntityClick: (entity: ClickedGraphEntity | null) => void
 ): () => void {
   function onContainerClick(event: MouseEvent) {
+    if (suppressNextClickRef.current) {
+      suppressNextClickRef.current = false
+      return
+    }
+
     const entity = getClickedGraphEntity(event)
-    onEntityClick(entity)
     if (!entity) {
       return
     }
 
+    onEntityClick(entity)
     onEntityClickRef.current?.(entity)
 
     if (entity.kind !== 'node') {
@@ -370,7 +377,8 @@ function bindPanZoomHandlers(
   container: HTMLDivElement,
   transformRef: MutableRefObject<GraphTransform>,
   svgRef: MutableRefObject<SVGSVGElement | null>,
-  viewportRef: MutableRefObject<SVGGElement | null>
+  viewportRef: MutableRefObject<SVGGElement | null>,
+  suppressNextClickRef: MutableRefObject<boolean>
 ): (() => void) | null {
   const svg = container.querySelector('svg')
   if (!(svg instanceof SVGSVGElement)) {
@@ -401,6 +409,9 @@ function bindPanZoomHandlers(
   let dragPointerId: number | null = null
   let lastPanPoint: CanvasPoint | null = null
   let lastCursorPoint: CanvasPoint | null = null
+  let dragStartClientX = 0
+  let dragStartClientY = 0
+  let draggedBeyondThreshold = false
 
   function onWheel(event: WheelEvent) {
     event.preventDefault()
@@ -435,9 +446,13 @@ function bindPanZoomHandlers(
     }
 
     event.preventDefault()
+    suppressNextClickRef.current = false
     dragPointerId = event.pointerId
     lastPanPoint = clientPointToCanvasPoint(svgElement, event.clientX, event.clientY)
     lastCursorPoint = lastPanPoint
+    dragStartClientX = event.clientX
+    dragStartClientY = event.clientY
+    draggedBeyondThreshold = false
     svgElement.setPointerCapture(event.pointerId)
     svgElement.style.cursor = 'grabbing'
   }
@@ -460,6 +475,14 @@ function bindPanZoomHandlers(
     const deltaY = currentPanPoint.y - previousPanPoint.y
     lastPanPoint = currentPanPoint
 
+    if (!draggedBeyondThreshold) {
+      const movedX = event.clientX - dragStartClientX
+      const movedY = event.clientY - dragStartClientY
+      if (Math.hypot(movedX, movedY) >= DRAG_CLICK_SUPPRESS_PX) {
+        draggedBeyondThreshold = true
+      }
+    }
+
     transformRef.current = {
       ...transformRef.current,
       translateX: transformRef.current.translateX + deltaX,
@@ -473,8 +496,12 @@ function bindPanZoomHandlers(
       return
     }
 
+    if (draggedBeyondThreshold) {
+      suppressNextClickRef.current = true
+    }
     dragPointerId = null
     lastPanPoint = null
+    draggedBeyondThreshold = false
     svgElement.style.cursor = 'grab'
     if (svgElement.hasPointerCapture(event.pointerId)) {
       svgElement.releasePointerCapture(event.pointerId)
@@ -522,6 +549,7 @@ function GraphViewer({
   const transformRef = useRef<GraphTransform>(INITIAL_TRANSFORM)
   const svgRef = useRef<SVGSVGElement | null>(null)
   const viewportRef = useRef<SVGGElement | null>(null)
+  const suppressNextClickRef = useRef(false)
   const onNodeClickRef = useRef<GraphViewerProps['onNodeClick']>(onNodeClick)
   const onTokenClickRef = useRef<GraphViewerProps['onTokenClick']>(onTokenClick)
   const onEntityClickRef = useRef<GraphViewerProps['onEntityClick']>(onEntityClick)
@@ -552,6 +580,7 @@ function GraphViewer({
       onNodeClickRef,
       onTokenClickRef,
       onEntityClickRef,
+      suppressNextClickRef,
       setLastClickedEntity
     )
     return () => {
@@ -604,7 +633,8 @@ function GraphViewer({
           currentContainer,
           transformRef,
           svgRef,
-          viewportRef
+          viewportRef,
+          suppressNextClickRef
         )
         applyGraphSemanticClasses(currentContainer, null)
       }

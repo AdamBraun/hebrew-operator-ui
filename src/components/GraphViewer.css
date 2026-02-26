@@ -50,11 +50,25 @@
   overflow: hidden;
 }
 
-.graph-viewer__canvas .graph-entity :is(ellipse, circle, polygon, rect, path) {
+.graph-viewer__canvas .graph-entity :is(ellipse, circle, polygon, rect, path, polyline) {
   transition:
     stroke 110ms ease,
     fill 110ms ease,
     opacity 110ms ease;
+}
+
+.graph-viewer__canvas g.graph > polygon {
+  fill: var(--neutral-surface-2);
+  stroke: none;
+}
+
+.graph-viewer__canvas g.cluster polygon {
+  fill: var(--neutral-surface-2);
+  stroke: var(--neutral-border);
+}
+
+.graph-viewer__canvas g.cluster text {
+  fill: var(--neutral-text-muted);
 }
 
 .graph-viewer__canvas g.node :is(ellipse, circle, polygon, rect, path) {
@@ -84,7 +98,13 @@
   fill: var(--neutral-text);
 }
 
-.graph-viewer__canvas g.edge path {
+.graph-viewer__canvas g.node polyline {
+  fill: none;
+  stroke: var(--node-boundary);
+}
+
+.graph-viewer__canvas g.edge :is(path, polyline) {
+  fill: none;
   stroke: var(--edge-link);
   stroke-width: 1.4;
 }
@@ -98,7 +118,7 @@
   fill: var(--neutral-text-muted);
 }
 
-.graph-viewer__canvas g.edge[data-semantic-edge='carry'] path {
+.graph-viewer__canvas g.edge[data-semantic-edge='carry'] :is(path, polyline) {
   stroke: var(--edge-carry);
 }
 
@@ -107,7 +127,7 @@
   stroke: var(--edge-carry);
 }
 
-.graph-viewer__canvas g.edge[data-semantic-edge='trope'] path {
+.graph-viewer__canvas g.edge[data-semantic-edge='trope'] :is(path, polyline) {
   stroke: var(--edge-trope);
   stroke-dasharray: 6 4;
 }
@@ -117,21 +137,47 @@
   stroke: var(--edge-trope);
 }
 
-.graph-viewer__canvas .graph-entity--selected :is(ellipse, circle, polygon, rect, path) {
+.graph-viewer__canvas g.node.graph-entity--selected :is(ellipse, circle, polygon, rect, path, polyline) {
   stroke: var(--select-primary);
 }
 
-.graph-viewer__canvas .graph-entity--selected text {
-  fill: var(--neutral-text);
+.graph-viewer__canvas g.edge.graph-entity--selected :is(path, polyline) {
+  fill: none;
+  stroke: var(--select-primary);
 }
 
-.graph-viewer__canvas .graph-entity--related :is(ellipse, circle, polygon, rect, path) {
+.graph-viewer__canvas g.edge.graph-entity--selected polygon {
+  fill: var(--select-primary);
+  stroke: var(--select-primary);
+}
+
+.graph-viewer__canvas g.node.graph-entity--related :is(ellipse, circle, polygon, rect, path, polyline) {
   stroke: var(--select-related);
 }
 
-.graph-viewer__canvas .graph-entity--dim :is(ellipse, circle, polygon, rect, path) {
+.graph-viewer__canvas g.edge.graph-entity--related :is(path, polyline) {
+  fill: none;
+  stroke: var(--select-related);
+}
+
+.graph-viewer__canvas g.edge.graph-entity--related polygon {
+  fill: var(--select-related);
+  stroke: var(--select-related);
+}
+
+.graph-viewer__canvas g.node.graph-entity--dim :is(ellipse, circle, polygon, rect, path, polyline) {
   stroke: var(--dim-inactive);
   fill: color-mix(in oklab, var(--neutral-surface-1) 88%, var(--dim-inactive));
+}
+
+.graph-viewer__canvas g.edge.graph-entity--dim :is(path, polyline) {
+  fill: none;
+  stroke: var(--dim-inactive);
+}
+
+.graph-viewer__canvas g.edge.graph-entity--dim polygon {
+  fill: var(--dim-inactive);
+  stroke: var(--dim-inactive);
 }
 
 .graph-viewer__canvas .graph-entity--dim text {
