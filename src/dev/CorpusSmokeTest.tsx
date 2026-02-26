@@ -66,7 +66,7 @@ function CorpusSmokeTest() {
   return (
     <section
       style={{
-        border: '1px solid #d0d7e2',
+        border: '1px solid var(--neutral-border)',
         borderRadius: '8px',
         padding: '1rem',
         marginTop: '1rem',
@@ -75,7 +75,7 @@ function CorpusSmokeTest() {
       <h2>Corpus Smoke Test (Dev Only)</h2>
       {state.loading && <p>Loading manifest and Genesis 001:001 artifacts...</p>}
       {state.error && (
-        <pre style={{ whiteSpace: 'pre-wrap', color: '#9f1239' }}>{state.error}</pre>
+        <pre style={{ whiteSpace: 'pre-wrap', color: 'var(--state-error)' }}>{state.error}</pre>
       )}
       {!state.loading && !state.error && state.manifest && state.artifacts && (
         <>

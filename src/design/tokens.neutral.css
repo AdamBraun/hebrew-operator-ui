@@ -6,6 +6,8 @@
   --neutral-border: #5f6d80;
   --neutral-text: #111a26;
   --neutral-text-muted: #35465b;
+  --neutral-overlay-soft: rgba(95, 109, 128, 0.45);
+  --neutral-shadow-1: rgba(17, 26, 38, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,6 +19,8 @@
     --neutral-border: #8ea0b8;
     --neutral-text: #edf2f8;
     --neutral-text-muted: #c3cfdf;
+    --neutral-overlay-soft: rgba(142, 160, 184, 0.42);
+    --neutral-shadow-1: rgba(13, 18, 25, 0.45);
   }
 }
 
@@ -28,6 +32,8 @@
   --neutral-border: #5f6d80;
   --neutral-text: #111a26;
   --neutral-text-muted: #35465b;
+  --neutral-overlay-soft: rgba(95, 109, 128, 0.45);
+  --neutral-shadow-1: rgba(17, 26, 38, 0.12);
 }
 
 :root[data-theme='dark'] {
@@ -38,6 +44,8 @@
   --neutral-border: #8ea0b8;
   --neutral-text: #edf2f8;
   --neutral-text-muted: #c3cfdf;
+  --neutral-overlay-soft: rgba(142, 160, 184, 0.42);
+  --neutral-shadow-1: rgba(13, 18, 25, 0.45);
 }
 
 @supports (color: oklch(0.7 0.1 120)) {
@@ -48,6 +56,8 @@
     --neutral-border: oklch(0.54 0.03 255);
     --neutral-text: oklch(0.22 0.02 255);
     --neutral-text-muted: oklch(0.38 0.025 255);
+    --neutral-overlay-soft: oklch(0.54 0.03 255 / 0.45);
+    --neutral-shadow-1: oklch(0.22 0.02 255 / 0.12);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -58,6 +68,8 @@
       --neutral-border: oklch(0.72 0.03 255);
       --neutral-text: oklch(0.95 0.008 255);
       --neutral-text-muted: oklch(0.84 0.015 255);
+      --neutral-overlay-soft: oklch(0.72 0.03 255 / 0.42);
+      --neutral-shadow-1: oklch(0.18 0.015 255 / 0.45);
     }
   }
 
@@ -68,6 +80,8 @@
     --neutral-border: oklch(0.54 0.03 255);
     --neutral-text: oklch(0.22 0.02 255);
     --neutral-text-muted: oklch(0.38 0.025 255);
+    --neutral-overlay-soft: oklch(0.54 0.03 255 / 0.45);
+    --neutral-shadow-1: oklch(0.22 0.02 255 / 0.12);
   }
 
   :root[data-theme='dark'] {
@@ -77,5 +91,7 @@
     --neutral-border: oklch(0.72 0.03 255);
     --neutral-text: oklch(0.95 0.008 255);
     --neutral-text-muted: oklch(0.84 0.015 255);
+    --neutral-overlay-soft: oklch(0.72 0.03 255 / 0.42);
+    --neutral-shadow-1: oklch(0.18 0.015 255 / 0.45);
   }
 }

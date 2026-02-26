@@ -1,24 +1,49 @@
 :root {
-  --semantic-seam-hard: var(--p-accent-4);
-  --semantic-seam-glue: var(--p-accent-2);
-  --semantic-seam-glue-maqqef: var(--p-accent-3);
-  --semantic-seam-cut-1: var(--p-accent);
-  --semantic-seam-cut-2: var(--p-accent-5);
-  --semantic-seam-cut-3: var(--p-accent-6);
+  /* Canonical semantic color truth table. */
+  --seam-hard: var(--p-accent-4);
+  --seam-glue: var(--p-accent-2);
+  --seam-glue-maqqef: var(--p-accent-3);
+  --seam-cut-1: var(--p-accent);
+  --seam-cut-2: var(--p-accent-5);
+  --seam-cut-3: var(--p-accent-6);
 
-  --semantic-node-scope: var(--p-accent);
-  --semantic-node-handle: var(--p-accent-2);
-  --semantic-node-boundary: var(--p-accent-5);
-  --semantic-node-rule: var(--p-accent-7);
+  --node-scope: var(--p-accent);
+  --node-handle: var(--p-accent-2);
+  --node-boundary: var(--p-accent-5);
+  --node-rule: var(--p-accent-7);
 
-  --semantic-edge-link: var(--p-accent-3);
-  --semantic-edge-carry: var(--p-accent-4);
-  --semantic-edge-trope: var(--p-accent-6);
+  --edge-link: var(--p-accent-3);
+  --edge-carry: var(--p-accent-4);
+  --edge-trope: var(--p-accent-6);
 
-  --semantic-state-warning: var(--p-warning-1);
-  --semantic-state-error: var(--p-error-1);
+  --state-warning: var(--p-warning-1);
+  --state-error: var(--p-error-1);
 
-  --semantic-select-primary: var(--p-select-primary);
-  --semantic-select-related: var(--p-select-related);
-  --semantic-dim-inactive: var(--p-dim-inactive);
+  --select-primary: var(--p-select-primary);
+  --select-related: var(--p-select-related);
+  --dim-inactive: var(--p-dim-inactive);
+
+  /* Backward-compatible aliases used by existing token utilities. */
+  --semantic-seam-hard: var(--seam-hard);
+  --semantic-seam-glue: var(--seam-glue);
+  --semantic-seam-glue-maqqef: var(--seam-glue-maqqef);
+  --semantic-seam-cut-1: var(--seam-cut-1);
+  --semantic-seam-cut-2: var(--seam-cut-2);
+  --semantic-seam-cut-3: var(--seam-cut-3);
+
+  --semantic-node-scope: var(--node-scope);
+  --semantic-node-handle: var(--node-handle);
+  --semantic-node-boundary: var(--node-boundary);
+  --semantic-node-rule: var(--node-rule);
+
+  --semantic-edge-link: var(--edge-link);
+  --semantic-edge-carry: var(--edge-carry);
+  --semantic-edge-trope: var(--edge-trope);
+
+  --semantic-state-warning: var(--state-warning);
+  --semantic-state-error: var(--state-error);
+
+  --semantic-select-primary: var(--select-primary);
+  --semantic-select-related: var(--select-related);
+  --semantic-dim-inactive: var(--dim-inactive);
 }

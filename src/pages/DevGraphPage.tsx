@@ -74,7 +74,7 @@ function DevGraphPage() {
 
       <div
         style={{
-          border: '1px solid #d0d7e2',
+          border: '1px solid var(--neutral-border)',
           borderRadius: '8px',
           padding: '1rem',
           height: 'min(65vh, 680px)',
