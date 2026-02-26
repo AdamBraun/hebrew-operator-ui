@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppShell from '../layout/AppShell'
 import GraphViewer from '../components/GraphViewer'
-import PasukHeader from '../components/PasukHeader/PasukHeader'
 import ScopeLanesOverlay from '../components/ScopeLanesOverlay'
 import SidebarNav from '../components/SidebarNav'
 import VerseHeader from '../components/VerseHeader'
@@ -13,7 +12,6 @@ import TraceTextViewer from '../components/TraceTextViewer'
 import { fallbackTextSearch } from '../lib/link/fallbackTextSearch'
 import { resolveGraphSelection } from '../lib/link/resolveGraphSelection'
 import type { GraphSelection } from '../lib/link/types'
-import { buildPasukHeaderModel } from '../lib/pasukHeaderModel'
 import { buildScopeLanesModel } from '../lib/scopeLanes/buildModel'
 import { segmentScopeLanes } from '../lib/scopeLanes/segment'
 import { useWordMeasurements } from '../lib/scopeLanes/useWordMeasurements'
@@ -117,9 +115,7 @@ function VersePage() {
   const [nextRef, setNextRef] = useState<VerseRef | null>(null)
   const [graphSelection, setGraphSelection] = useState<GraphSelection | null>(null)
   const [selectedMatchIndex, setSelectedMatchIndex] = useState(0)
-  const [headerMode, setHeaderMode] = useState<'read' | 'inspect'>('read')
-  const [inspectDebugVisible, setInspectDebugVisible] = useState(false)
-  const { selectedWordIndex, selectWord, clearWordSelection } = useWordSelectionState()
+  const { selectedWordIndex, clearWordSelection } = useWordSelectionState()
 
   const verseLineContainerRef = useRef<HTMLDivElement | null>(null)
   const {
@@ -222,8 +218,6 @@ function VersePage() {
     setGraphSelection(null)
     setSelectedMatchIndex(0)
     clearWordSelection()
-    setHeaderMode('read')
-    setInspectDebugVisible(false)
   }, [clearWordSelection, ref?.book, ref?.chapter3, ref?.verse3])
 
   useEffect(() => {
@@ -292,27 +286,6 @@ function VersePage() {
     return extractVerseText(data.traceJson, data.traceTxt ?? '')
   }, [data])
 
-  const pasukHeaderModel = useMemo(() => {
-    if (!data || !ref) {
-      return null
-    }
-    return buildPasukHeaderModel({
-      ref,
-      traceTxt: data.traceTxt ?? '',
-      traceJson: data.traceJson,
-    })
-  }, [data, ref])
-
-  const verseWords = useMemo(() => {
-    if (pasukHeaderModel && pasukHeaderModel.words.length > 0) {
-      return pasukHeaderModel.words.map((word) => word.text)
-    }
-    return verseText.text
-      .split(/\s+/u)
-      .map((word) => word.trim())
-      .filter((word) => word.length > 0)
-  }, [pasukHeaderModel, verseText.text])
-
   const scopeLanesModel = useMemo(() => {
     if (!data || !ref) {
       return null
@@ -323,6 +296,16 @@ function VersePage() {
       lanes: segmentScopeLanes(model.boundariesAfter, model.words.length),
     }
   }, [data, ref])
+
+  const verseWords = useMemo(() => {
+    if (scopeLanesModel && scopeLanesModel.words.length > 0) {
+      return scopeLanesModel.words.map((word) => word.text)
+    }
+    return verseText.text
+      .split(/\s+/u)
+      .map((word) => word.trim())
+      .filter((word) => word.length > 0)
+  }, [scopeLanesModel, verseText.text])
 
   useEffect(() => {
     recalcWordMeasurements()
@@ -481,45 +464,6 @@ function VersePage() {
                 navLoading={navLoading || navTransitionLoading}
               />
               <VerseHeader verseRef={ref} manifest={manifest} />
-
-              <div className="verse-page__header-controls" role="group" aria-label="Pasuk header mode">
-                <button type="button" onClick={() => setHeaderMode('read')} aria-pressed={headerMode === 'read'}>
-                  Read
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHeaderMode('inspect')}
-                  aria-pressed={headerMode === 'inspect'}
-                >
-                  Inspect
-                </button>
-                {headerMode === 'inspect' ? (
-                  <button
-                    type="button"
-                    onClick={() => setInspectDebugVisible((value) => !value)}
-                    aria-pressed={inspectDebugVisible}
-                    className="verse-page__header-controls-debug"
-                    title="Show/hide per-word debug char length badges"
-                  >
-                    Debug
-                  </button>
-                ) : null}
-              </div>
-
-              {pasukHeaderModel ? (
-                <PasukHeader
-                  model={pasukHeaderModel}
-                  selectedWordIndex={selectedWordIndex}
-                  mode={headerMode}
-                  showDebugMeta={headerMode === 'inspect' && inspectDebugVisible}
-                  onWordSelect={({ wordIndex }) => {
-                    setGraphSelection(null)
-                    setSelectedMatchIndex(0)
-                    selectWord(wordIndex)
-                  }}
-                  onSelectionClear={() => clearWordSelection()}
-                />
-              ) : null}
 
               <section className="verse-page__verse-structure">
                 <VerseLine words={verseWords} containerRef={verseLineContainerRef} />
