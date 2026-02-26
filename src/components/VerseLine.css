@@ -8,6 +8,7 @@
   overflow-y: hidden;
   padding-bottom: 0.1rem;
   scrollbar-width: thin;
+  outline: none;
 }
 
 .verse-line__word-wrap {
@@ -16,4 +17,16 @@
 
 .verse-line__word {
   display: inline;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.verse-line__word:hover {
+  background: color-mix(in srgb, var(--neutral-surface-2) 85%, var(--select-related) 15%);
+}
+
+.verse-line__word--selected {
+  background: color-mix(in srgb, var(--neutral-surface-2) 80%, var(--select-primary) 20%);
+  outline: 1px solid var(--select-primary);
+  outline-offset: 1px;
 }

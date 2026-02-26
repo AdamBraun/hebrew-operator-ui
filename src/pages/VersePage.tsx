@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppShell from '../layout/AppShell'
 import GraphViewer from '../components/GraphViewer'
-import ScopeLanesOverlay from '../components/ScopeLanesOverlay'
 import SidebarNav from '../components/SidebarNav'
+import ScopeLanesHeader from '../components/ScopeLanesHeader'
 import VerseHeader from '../components/VerseHeader'
-import VerseLine from '../components/VerseLine'
 import VersePager from '../components/VersePager'
 import TraceEventViewer from '../components/TraceEventViewer'
 import TraceTextViewer from '../components/TraceTextViewer'
@@ -14,10 +13,8 @@ import { resolveGraphSelection } from '../lib/link/resolveGraphSelection'
 import type { GraphSelection } from '../lib/link/types'
 import { buildScopeLanesModel } from '../lib/scopeLanes/buildModel'
 import { segmentScopeLanes } from '../lib/scopeLanes/segment'
-import { useWordMeasurements } from '../lib/scopeLanes/useWordMeasurements'
 import { buildTraceIndex } from '../lib/trace/buildTraceIndex'
 import type { TraceIndex, TraceLocation } from '../lib/trace/types'
-import { extractVerseText } from '../lib/verseText'
 import { FetchError } from '../lib/fetcher'
 import { useVerseHotkeys } from '../hooks/useVerseHotkeys'
 import { getNextRefTiered, getPrevRefTiered } from '../lib/navWalkTiered'
@@ -32,7 +29,7 @@ import {
 } from '../lib/source'
 import type { Manifest } from '../lib/types'
 import { useNavState } from '../state/nav'
-import { useWordSelectionState } from '../state/selection'
+import type { ScopeSelection } from '../lib/scopeLanes/types'
 import './VersePage.css'
 
 type LoadError = {
@@ -115,14 +112,7 @@ function VersePage() {
   const [nextRef, setNextRef] = useState<VerseRef | null>(null)
   const [graphSelection, setGraphSelection] = useState<GraphSelection | null>(null)
   const [selectedMatchIndex, setSelectedMatchIndex] = useState(0)
-  const { selectedWordIndex, clearWordSelection } = useWordSelectionState()
-
-  const verseLineContainerRef = useRef<HTMLDivElement | null>(null)
-  const {
-    rects: verseWordRects,
-    contentWidth: verseLineScrollWidth,
-    recalc: recalcWordMeasurements,
-  } = useWordMeasurements(verseLineContainerRef)
+  const [scopeSelection, setScopeSelection] = useState<ScopeSelection | null>(null)
 
   const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
   const isKnownRef = useMemo(() => {
@@ -217,8 +207,8 @@ function VersePage() {
   useEffect(() => {
     setGraphSelection(null)
     setSelectedMatchIndex(0)
-    clearWordSelection()
-  }, [clearWordSelection, ref?.book, ref?.chapter3, ref?.verse3])
+    setScopeSelection(null)
+  }, [ref?.book, ref?.chapter3, ref?.verse3])
 
   useEffect(() => {
     if (!ref || isKnownRef === false) {
@@ -279,13 +269,6 @@ function VersePage() {
     }
   }, [isKnownRef, ref, retryCount])
 
-  const verseText = useMemo(() => {
-    if (!data) {
-      return { text: '(verse text unavailable)', source: 'none' as const }
-    }
-    return extractVerseText(data.traceJson, data.traceTxt ?? '')
-  }, [data])
-
   const scopeLanesModel = useMemo(() => {
     if (!data || !ref) {
       return null
@@ -296,20 +279,6 @@ function VersePage() {
       lanes: segmentScopeLanes(model.boundariesAfter, model.words.length),
     }
   }, [data, ref])
-
-  const verseWords = useMemo(() => {
-    if (scopeLanesModel && scopeLanesModel.words.length > 0) {
-      return scopeLanesModel.words.map((word) => word.text)
-    }
-    return verseText.text
-      .split(/\s+/u)
-      .map((word) => word.trim())
-      .filter((word) => word.length > 0)
-  }, [scopeLanesModel, verseText.text])
-
-  useEffect(() => {
-    recalcWordMeasurements()
-  }, [recalcWordMeasurements, verseWords])
 
   const traceModel = useMemo(() => {
     if (!data) {
@@ -368,8 +337,18 @@ function VersePage() {
     [rankedLocations, selectedMatchIndex]
   )
 
+  const selectedWordIndex = useMemo(() => {
+    if (!scopeSelection) {
+      return undefined
+    }
+    if (scopeSelection.type === 'word') {
+      return scopeSelection.index
+    }
+    return scopeSelection.startWord
+  }, [scopeSelection])
+
   const selectedWordTraceLocations = useMemo(() => {
-    if (!traceModel.traceIndex?.byWordIndex || !selectedWordIndex) {
+    if (!traceModel.traceIndex?.byWordIndex || selectedWordIndex === undefined) {
       return []
     }
     return [...(traceModel.traceIndex.byWordIndex.get(selectedWordIndex) ?? [])]
@@ -465,16 +444,17 @@ function VersePage() {
               />
               <VerseHeader verseRef={ref} manifest={manifest} />
 
-              <section className="verse-page__verse-structure">
-                <VerseLine words={verseWords} containerRef={verseLineContainerRef} />
-                {scopeLanesModel ? (
-                  <ScopeLanesOverlay
-                    rects={verseWordRects}
-                    lanes={scopeLanesModel.lanes}
-                    contentWidth={verseLineScrollWidth}
-                  />
-                ) : null}
-              </section>
+              {scopeLanesModel ? (
+                <ScopeLanesHeader
+                  model={scopeLanesModel}
+                  selection={scopeSelection}
+                  onSelect={(selection) => {
+                    setGraphSelection(null)
+                    setSelectedMatchIndex(0)
+                    setScopeSelection(selection)
+                  }}
+                />
+              ) : null}
 
               <main className="verse-page__split">
                 <section aria-label="Graph" className="verse-page__panel verse-page__panel--graph">
@@ -503,7 +483,7 @@ function VersePage() {
                           setGraphSelection(null)
                           return
                         }
-                        clearWordSelection()
+                        setScopeSelection(null)
                         setGraphSelection({
                           kind: entity.kind,
                           id: entity.id,

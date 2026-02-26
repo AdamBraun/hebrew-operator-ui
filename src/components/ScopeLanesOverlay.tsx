@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { WordRect } from './VerseLine'
-import type { ScopeLanesModel } from '../lib/scopeLanes/types'
+import type { ScopeLanesModel, ScopeSelection } from '../lib/scopeLanes/types'
 import { buildLanePaths, type LanePathConfig } from '../lib/scopeLanes/buildLanePaths'
 import './ScopeLanesOverlay.css'
 
@@ -8,7 +8,10 @@ type ScopeLanesOverlayProps = {
   rects: WordRect[]
   lanes: ScopeLanesModel['lanes']
   contentWidth: number
-  selectedPathId?: string
+  selection?: ScopeSelection | null
+  relatedSpan?: Extract<ScopeSelection, { type: 'span' }> | null
+  onSelectSpan?: (selection: Extract<ScopeSelection, { type: 'span' }>) => void
+  onPreviewSpan?: (selection?: Extract<ScopeSelection, { type: 'span' }>) => void
   laneConfig?: LanePathConfig
 }
 
@@ -16,7 +19,10 @@ function ScopeLanesOverlay({
   rects,
   lanes,
   contentWidth,
-  selectedPathId,
+  selection,
+  relatedSpan,
+  onSelectSpan,
+  onPreviewSpan,
   laneConfig,
 }: ScopeLanesOverlayProps) {
   const [hoveredPathId, setHoveredPathId] = useState<string | null>(null)
@@ -46,8 +52,22 @@ function ScopeLanesOverlay({
       aria-label="Scope lanes"
     >
       {paths.map((path) => {
+        const spanSelection: Extract<ScopeSelection, { type: 'span' }> = {
+          type: 'span',
+          rank: path.rank,
+          startWord: path.startWord,
+          endWord: path.endWord,
+        }
         const isHovered = hoveredPathId === path.id
-        const isSelected = selectedPathId === path.id
+        const isSelected =
+          selection?.type === 'span' &&
+          selection.rank === path.rank &&
+          selection.startWord === path.startWord &&
+          selection.endWord === path.endWord
+        const isRelatedToWord =
+          relatedSpan?.rank === path.rank &&
+          relatedSpan?.startWord === path.startWord &&
+          relatedSpan?.endWord === path.endWord
 
         return (
           <g
@@ -57,6 +77,7 @@ function ScopeLanesOverlay({
               `scope-lanes-overlay__path--rank-${path.rank}`,
               isHovered ? 'scope-lanes-overlay__path--hovered' : '',
               isSelected ? 'scope-lanes-overlay__path--selected' : '',
+              isRelatedToWord ? 'scope-lanes-overlay__path--related' : '',
             ]
               .filter(Boolean)
               .join(' ')}
@@ -65,8 +86,21 @@ function ScopeLanesOverlay({
             <path
               d={path.d}
               className="scope-lanes-overlay__hit"
-              onMouseEnter={() => setHoveredPathId(path.id)}
-              onMouseLeave={() => setHoveredPathId((current) => (current === path.id ? null : current))}
+              onPointerDown={(event) => {
+                if (event.pointerType === 'mouse' && event.button !== 0) {
+                  return
+                }
+                event.preventDefault()
+                onSelectSpan?.(spanSelection)
+              }}
+              onMouseEnter={() => {
+                setHoveredPathId(path.id)
+                onPreviewSpan?.(spanSelection)
+              }}
+              onMouseLeave={() => {
+                setHoveredPathId((current) => (current === path.id ? null : current))
+                onPreviewSpan?.(undefined)
+              }}
             />
           </g>
         )
@@ -76,4 +110,3 @@ function ScopeLanesOverlay({
 }
 
 export default ScopeLanesOverlay
-

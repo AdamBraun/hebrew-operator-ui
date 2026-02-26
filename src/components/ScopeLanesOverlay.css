@@ -34,6 +34,10 @@
   stroke: var(--edge-link);
 }
 
+.scope-lanes-overlay__path--related .scope-lanes-overlay__visible {
+  stroke: var(--select-related);
+}
+
 .scope-lanes-overlay__path--selected .scope-lanes-overlay__visible {
   stroke: var(--select-primary);
   filter: drop-shadow(0 0 2px var(--p-select-primary-glow));
@@ -41,10 +45,10 @@
 
 .scope-lanes-overlay__hit {
   fill: none;
-  stroke: transparent;
+  stroke: rgba(0, 0, 0, 0.001);
   stroke-width: var(--scope-lane-hit-width, 10px);
   stroke-linecap: round;
   stroke-linejoin: round;
   pointer-events: stroke;
+  cursor: pointer;
 }
-

@@ -40,3 +40,6 @@ export type ScopeLanesModel = {
   }
 }
 
+export type ScopeSelection =
+  | { type: 'word'; index: number }
+  | { type: 'span'; rank: 3 | 2 | 1; startWord: number; endWord: number }
