@@ -12,6 +12,12 @@ function HomePage() {
       </p>
       <ul>
         <li>
+          <Link to="/dev/pasuk-header">PasukHeader Demo</Link>
+        </li>
+        <li>
+          <Link to="/dev/graph">GraphViewer Dev Smoke</Link>
+        </li>
+        <li>
           <Link to="/genesis/001/001">Genesis 001:001</Link>
         </li>
         <li>

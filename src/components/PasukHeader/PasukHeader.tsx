@@ -1,0 +1,139 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { PasukHeaderModel } from '../../lib/pasukHeaderModel'
+import { getSeamMarkerProps } from '../../ui/seams'
+import './PasukHeader.css'
+
+type PasukHeaderMode = 'read' | 'inspect'
+
+type PasukHeaderProps = {
+  model: PasukHeaderModel
+  mode?: PasukHeaderMode
+  onWordSelect?: (wordIndex: number) => void
+  className?: string
+}
+
+function PasukHeader({
+  model,
+  mode = 'read',
+  onWordSelect,
+  className,
+}: PasukHeaderProps) {
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const chipRefs = useRef(new Map<number, HTMLButtonElement>())
+  const [isScrollable, setIsScrollable] = useState(false)
+
+  const selectedWordIndex = model.selection?.wordIndex
+
+  useEffect(() => {
+    const container = scrollRef.current
+    if (!container) {
+      return
+    }
+
+    const updateScrollable = () => {
+      setIsScrollable(container.scrollWidth > container.clientWidth + 1)
+    }
+
+    updateScrollable()
+
+    const resizeObserver = new ResizeObserver(() => updateScrollable())
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [model.words.length])
+
+  useEffect(() => {
+    if (!selectedWordIndex) {
+      return
+    }
+
+    const chip = chipRefs.current.get(selectedWordIndex)
+    if (!chip) {
+      return
+    }
+
+    chip.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    })
+  }, [selectedWordIndex])
+
+  const rootClassName = useMemo(
+    () =>
+      [
+        'pasuk-header',
+        isScrollable ? 'pasuk-header--scrollable' : '',
+        className ?? '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+    [className, isScrollable]
+  )
+
+  return (
+    <section className={rootClassName} aria-label="Pasuk header">
+      <div className="pasuk-header__scroll" dir="rtl" lang="he" ref={scrollRef}>
+        {model.words.map((word) => {
+          const seam = getSeamMarkerProps(word.seamAfter)
+          const isSelected = selectedWordIndex === word.index
+          const seamTitle =
+            mode === 'inspect'
+              ? `${seam.ariaLabel} (${word.seamAfter})`
+              : seam.ariaLabel
+
+          return (
+            <span key={word.index} className="pasuk-header__item">
+              <button
+                ref={(node) => {
+                  if (node) {
+                    chipRefs.current.set(word.index, node)
+                  } else {
+                    chipRefs.current.delete(word.index)
+                  }
+                }}
+                type="button"
+                className={[
+                  'pasuk-header__chip',
+                  isSelected ? 'pasuk-header__chip--selected' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                onClick={() => onWordSelect?.(word.index)}
+                aria-pressed={isSelected}
+                aria-label={`Word ${word.index}: ${word.text}`}
+              >
+                <span className="pasuk-header__word">{word.text}</span>
+                {mode === 'inspect' ? (
+                  <span className="pasuk-header__index" aria-hidden="true">
+                    #{word.index}
+                  </span>
+                ) : null}
+              </button>
+
+              <span
+                className={['pasuk-header__seam', seam.className].join(' ')}
+                title={seamTitle}
+                aria-label={seamTitle}
+                role="img"
+              >
+                {seam.glyph}
+              </span>
+
+              {mode === 'inspect' ? (
+                <span className="pasuk-header__seam-label" aria-hidden="true">
+                  {word.seamAfter}
+                </span>
+              ) : null}
+            </span>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+export default PasukHeader
+
