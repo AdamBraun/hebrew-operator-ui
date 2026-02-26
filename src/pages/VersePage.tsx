@@ -113,6 +113,7 @@ function VersePage() {
   const [graphSelection, setGraphSelection] = useState<GraphSelection | null>(null)
   const [selectedMatchIndex, setSelectedMatchIndex] = useState(0)
   const [scopeSelection, setScopeSelection] = useState<ScopeSelection | null>(null)
+  const [scopeHeaderMode, setScopeHeaderMode] = useState<'read' | 'inspect'>('read')
 
   const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
   const isKnownRef = useMemo(() => {
@@ -208,6 +209,7 @@ function VersePage() {
     setGraphSelection(null)
     setSelectedMatchIndex(0)
     setScopeSelection(null)
+    setScopeHeaderMode('read')
   }, [ref?.book, ref?.chapter3, ref?.verse3])
 
   useEffect(() => {
@@ -445,15 +447,36 @@ function VersePage() {
               <VerseHeader verseRef={ref} manifest={manifest} />
 
               {scopeLanesModel ? (
-                <ScopeLanesHeader
-                  model={scopeLanesModel}
-                  selection={scopeSelection}
-                  onSelect={(selection) => {
-                    setGraphSelection(null)
-                    setSelectedMatchIndex(0)
-                    setScopeSelection(selection)
-                  }}
-                />
+                <div className="verse-page__scope-header">
+                  <div className="verse-page__scope-mode" role="group" aria-label="Scope lanes mode">
+                    <button
+                      type="button"
+                      className={scopeHeaderMode === 'read' ? 'verse-page__scope-mode-btn--active' : ''}
+                      aria-pressed={scopeHeaderMode === 'read'}
+                      onClick={() => setScopeHeaderMode('read')}
+                    >
+                      Read
+                    </button>
+                    <button
+                      type="button"
+                      className={scopeHeaderMode === 'inspect' ? 'verse-page__scope-mode-btn--active' : ''}
+                      aria-pressed={scopeHeaderMode === 'inspect'}
+                      onClick={() => setScopeHeaderMode('inspect')}
+                    >
+                      Inspect
+                    </button>
+                  </div>
+                  <ScopeLanesHeader
+                    model={scopeLanesModel}
+                    mode={scopeHeaderMode}
+                    selection={scopeSelection}
+                    onSelect={(selection) => {
+                      setGraphSelection(null)
+                      setSelectedMatchIndex(0)
+                      setScopeSelection(selection)
+                    }}
+                  />
+                </div>
               ) : null}
 
               <main className="verse-page__split">

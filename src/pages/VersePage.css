@@ -75,6 +75,31 @@
   margin-bottom: 0.75rem;
 }
 
+.verse-page__scope-header {
+  margin-bottom: 0.75rem;
+}
+
+.verse-page__scope-mode {
+  display: inline-flex;
+  gap: 0.3rem;
+  margin-bottom: 0.35rem;
+}
+
+.verse-page__scope-mode button {
+  border: 1px solid var(--neutral-border);
+  border-radius: 6px;
+  background: var(--neutral-surface-1);
+  color: var(--neutral-text-muted);
+  padding: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.verse-page__scope-mode-btn--active {
+  color: var(--select-primary) !important;
+  border-color: var(--select-primary) !important;
+  box-shadow: 0 0 0 2px var(--p-select-primary-glow);
+}
+
 .verse-page__split {
   display: grid;
   grid-template-columns: minmax(0, 1.22fr) minmax(0, 1fr);

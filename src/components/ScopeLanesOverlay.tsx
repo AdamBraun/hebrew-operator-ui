@@ -4,14 +4,16 @@ import type { ScopeLanesModel, ScopeSelection } from '../lib/scopeLanes/types'
 import { buildLanePaths, type LanePathConfig } from '../lib/scopeLanes/buildLanePaths'
 import './ScopeLanesOverlay.css'
 
+export type ScopeSpanSelection = Extract<ScopeSelection, { type: 'span' }>
+
 type ScopeLanesOverlayProps = {
   rects: WordRect[]
   lanes: ScopeLanesModel['lanes']
   contentWidth: number
   selection?: ScopeSelection | null
-  relatedSpan?: Extract<ScopeSelection, { type: 'span' }> | null
-  onSelectSpan?: (selection: Extract<ScopeSelection, { type: 'span' }>) => void
-  onPreviewSpan?: (selection?: Extract<ScopeSelection, { type: 'span' }>) => void
+  relatedSpan?: ScopeSpanSelection | null
+  onSelectSpan?: (selection: ScopeSpanSelection) => void
+  onPreviewSpan?: (selection?: ScopeSpanSelection) => void
   laneConfig?: LanePathConfig
 }
 
@@ -52,7 +54,7 @@ function ScopeLanesOverlay({
       aria-label="Scope lanes"
     >
       {paths.map((path) => {
-        const spanSelection: Extract<ScopeSelection, { type: 'span' }> = {
+        const spanSelection: ScopeSpanSelection = {
           type: 'span',
           rank: path.rank,
           startWord: path.startWord,

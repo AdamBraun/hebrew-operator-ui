@@ -1,5 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import ScopeLanesOverlay from './ScopeLanesOverlay'
+import type { ScopeSpanSelection } from './ScopeLanesOverlay'
+import ScopeLanesLegend from './ScopeLanesLegend'
+import ScopeSpanTooltip from './ScopeSpanTooltip'
 import VerseLine from './VerseLine'
 import type { ScopeLanesModel, ScopeSelection } from '../lib/scopeLanes/types'
 import { useWordMeasurements } from '../lib/scopeLanes/useWordMeasurements'
@@ -7,6 +10,7 @@ import './ScopeLanesHeader.css'
 
 type ScopeLanesHeaderProps = {
   model: ScopeLanesModel
+  mode?: 'read' | 'inspect'
   selection?: ScopeSelection | null
   onSelect: (selection: ScopeSelection | null) => void
 }
@@ -45,10 +49,12 @@ function smallestVisibleSpanContainingWord(
   }
 }
 
-function ScopeLanesHeader({ model, selection = null, onSelect }: ScopeLanesHeaderProps) {
+function ScopeLanesHeader({ model, mode = 'read', selection = null, onSelect }: ScopeLanesHeaderProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const { rects, contentWidth } = useWordMeasurements(containerRef)
   const [hoveredWordIndex, setHoveredWordIndex] = useState<number | undefined>(undefined)
+  const [hoveredSpan, setHoveredSpan] = useState<ScopeSpanSelection | undefined>(undefined)
+  const [legendOpen, setLegendOpen] = useState(false)
 
   const selectedWordIndex = selection?.type === 'word' ? selection.index : undefined
   const relatedSpan = useMemo(
@@ -60,9 +66,37 @@ function ScopeLanesHeader({ model, selection = null, onSelect }: ScopeLanesHeade
     [hoveredWordIndex, model.lanes, selection]
   )
   const words = useMemo(() => model.words.map((word) => word.text), [model.words])
+  const tooltip = useMemo(() => {
+    if (!hoveredSpan || rects.length === 0) {
+      return null
+    }
+    const startRect = rects.find((rect) => rect.index === hoveredSpan.startWord)
+    const endRect = rects.find((rect) => rect.index === hoveredSpan.endWord)
+    if (!startRect || !endRect) {
+      return null
+    }
+    return {
+      x: (startRect.left + endRect.right) / 2,
+      label: `Chunk rank ${hoveredSpan.rank}: words ${hoveredSpan.startWord}–${hoveredSpan.endWord}`,
+    }
+  }, [hoveredSpan, rects])
 
   return (
     <section className="scope-lanes-header" aria-label="Scope lanes header">
+      {mode === 'inspect' ? (
+        <div className="scope-lanes-header__inspect-tools">
+          <button
+            type="button"
+            className="scope-lanes-header__legend-toggle"
+            onClick={() => setLegendOpen((open) => !open)}
+            aria-expanded={legendOpen}
+            aria-controls="scope-lanes-legend"
+          >
+            {legendOpen ? 'Hide legend' : 'Show legend'}
+          </button>
+          {legendOpen ? <ScopeLanesLegend id="scope-lanes-legend" /> : null}
+        </div>
+      ) : null}
       <VerseLine
         words={words}
         containerRef={containerRef}
@@ -111,7 +145,9 @@ function ScopeLanesHeader({ model, selection = null, onSelect }: ScopeLanesHeade
         selection={selection}
         relatedSpan={relatedSpan}
         onSelectSpan={(spanSelection) => onSelect(spanSelection)}
+        onPreviewSpan={(spanSelection) => setHoveredSpan(spanSelection)}
       />
+      <ScopeSpanTooltip x={tooltip?.x ?? 0} text={tooltip?.label ?? ''} visible={tooltip !== null} />
     </section>
   )
 }
