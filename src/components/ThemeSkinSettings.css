@@ -1,0 +1,58 @@
+.theme-skin-settings {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid var(--neutral-border);
+  border-radius: 8px;
+  background: var(--neutral-surface-1);
+  padding: 0.65rem;
+}
+
+.theme-skin-settings__title {
+  margin: 0;
+  font-size: 0.86rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--neutral-text-muted);
+}
+
+.theme-skin-settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.theme-skin-settings__row--select {
+  margin: 0;
+}
+
+.theme-skin-settings__label {
+  font-size: 0.82rem;
+  color: var(--neutral-text);
+}
+
+.theme-skin-settings__toggle {
+  border: 1px solid var(--select-primary);
+  background: var(--p-tint-accent);
+  color: var(--neutral-text);
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.theme-skin-settings__select {
+  border: 1px solid var(--neutral-border);
+  background: var(--neutral-surface-1);
+  color: var(--neutral-text);
+  border-radius: 6px;
+  padding: 0.24rem 0.45rem;
+  font-size: 0.82rem;
+}
+
+.theme-skin-settings__toggle:focus-visible,
+.theme-skin-settings__select:focus-visible {
+  outline: 2px solid var(--select-primary);
+  outline-offset: 2px;
+}

@@ -24,9 +24,16 @@ body {
   width: 240px;
   flex-shrink: 0;
   box-sizing: border-box;
+  display: grid;
+  align-content: start;
+  gap: 0.85rem;
   padding: 1.25rem 1rem;
   border-right: 1px solid var(--neutral-border);
   background: var(--neutral-surface-2);
+}
+
+.app-shell__sidebar-content {
+  min-width: 0;
 }
 
 h1 {

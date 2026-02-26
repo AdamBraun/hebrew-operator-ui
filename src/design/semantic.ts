@@ -4,17 +4,19 @@ export type ThemeName = 'light' | 'dark'
 export type SkinName = 'cool' | 'parchment'
 export type CssVarRef = `var(--${string})`
 
-const THEME_NAMES: readonly ThemeName[] = ['light', 'dark'] as const
-const SKIN_NAMES: readonly SkinName[] = ['cool', 'parchment'] as const
+export const THEME_NAMES: readonly ThemeName[] = ['light', 'dark'] as const
+export const SKIN_NAMES: readonly SkinName[] = ['cool', 'parchment'] as const
+export const DEFAULT_THEME: ThemeName = 'dark'
+export const DEFAULT_SKIN: SkinName = 'cool'
 
-function parseThemeName(value: string | undefined): ThemeName | undefined {
+export function normalizeThemeName(value: string | null | undefined): ThemeName | undefined {
   if (!value) {
     return undefined
   }
   return THEME_NAMES.includes(value as ThemeName) ? (value as ThemeName) : undefined
 }
 
-function parseSkinName(value: string | undefined): SkinName | undefined {
+export function normalizeSkinName(value: string | null | undefined): SkinName | undefined {
   if (!value) {
     return undefined
   }
@@ -34,9 +36,9 @@ export function setSkin(skin: SkinName): void {
 }
 
 export function getTheme(): ThemeName | undefined {
-  return parseThemeName(document.documentElement.dataset.theme)
+  return normalizeThemeName(document.documentElement.dataset.theme)
 }
 
 export function getSkin(): SkinName | undefined {
-  return parseSkinName(document.documentElement.dataset.skin)
+  return normalizeSkinName(document.documentElement.dataset.skin)
 }
