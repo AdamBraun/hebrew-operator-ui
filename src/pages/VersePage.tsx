@@ -9,6 +9,7 @@ import VerseText from '../components/VerseText'
 import TraceEventViewer from '../components/TraceEventViewer'
 import { buildTraceIndex } from '../../ui/src/lib/trace/index_trace'
 import type { TraceIndex, TraceJson } from '../../ui/src/lib/trace/types'
+import { resolveEventRefsForHandle } from '../lib/trace/resolveEventRefsForHandle'
 import { FetchError } from '../lib/fetcher'
 import { getNextRefTiered, getPrevRefTiered } from '../lib/navWalkTiered'
 import { normalizeVerseRef } from '../lib/ref'
@@ -280,12 +281,7 @@ function VersePage() {
   }, [data])
 
   const highlightedEventIndices = useMemo(() => {
-    if (!selectedHandleId || !traceModel.traceIndex) {
-      return [] as number[]
-    }
-
-    const refs = traceModel.traceIndex.refsByHandleId.get(selectedHandleId)
-    return refs ? [...new Set(refs)].sort((a, b) => a - b) : []
+    return resolveEventRefsForHandle(selectedHandleId, traceModel.traceIndex)
   }, [selectedHandleId, traceModel.traceIndex])
 
   const primaryTraceLocation = useMemo(() => {
