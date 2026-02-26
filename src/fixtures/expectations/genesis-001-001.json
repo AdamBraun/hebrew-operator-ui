@@ -1,0 +1,32 @@
+{
+  "links": [
+    {
+      "graphNodeId": "C:1:1",
+      "expectedPrimary": { "kind": "event", "index": 1 }
+    },
+    {
+      "graphNodeId": "C:2:2",
+      "expectedPrimary": { "kind": "event", "index": 7 }
+    },
+    {
+      "graphNodeId": "ב:1:1",
+      "expectedPrimary": { "kind": "word", "index": 0 }
+    },
+    {
+      "graphNodeId": "ש:1:4",
+      "expectedPrimary": { "kind": "event", "index": 4 }
+    },
+    {
+      "graphNodeId": "ת:5:4",
+      "expectedPrimary": { "kind": "event", "index": 19 }
+    },
+    {
+      "graphNodeId": "Ω",
+      "expectedPrimary": { "kind": "event", "index": 0 }
+    },
+    {
+      "graphNodeId": "⊥",
+      "expectedPrimary": { "kind": "word", "index": 0 }
+    }
+  ]
+}
