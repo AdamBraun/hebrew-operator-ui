@@ -36,11 +36,13 @@
 }
 
 .pasuk-header__item {
+  position: relative;
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
   gap: 0.3rem;
-  margin-inline-end: 0.35rem;
+  margin-inline-end: 0.45rem;
+  padding-block-start: 0.3rem;
 }
 
 .pasuk-header__chip {
@@ -85,13 +87,6 @@
   text-align: start;
 }
 
-.pasuk-header__index {
-  direction: ltr;
-  unicode-bidi: isolate;
-  color: var(--neutral-text-muted);
-  font-size: 0.72rem;
-}
-
 .pasuk-header__seam {
   min-width: 1.65rem;
   min-height: 2rem;
@@ -134,11 +129,34 @@
   color: var(--dim-inactive);
 }
 
-.pasuk-header__seam-label {
-  font-size: 0.7rem;
+.pasuk-header__badge {
+  position: absolute;
+  inset-block-start: -0.15rem;
+  inset-inline-start: -0.1rem;
+  min-height: 1rem;
+  padding-inline: 0.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--neutral-border);
+  background: var(--neutral-surface-1);
   color: var(--neutral-text-muted);
+  font-size: 0.66rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  z-index: 2;
   direction: ltr;
   unicode-bidi: isolate;
+}
+
+.pasuk-header__badge--index {
+  font-weight: 700;
+}
+
+.pasuk-header__badge--debug {
+  inset-inline-start: auto;
+  inset-inline-end: -0.15rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.92;
 }
 
 @media (max-width: 640px) {

@@ -116,6 +116,8 @@ function VersePage() {
   const [nextRef, setNextRef] = useState<VerseRef | null>(null)
   const [graphSelection, setGraphSelection] = useState<GraphSelection | null>(null)
   const [selectedMatchIndex, setSelectedMatchIndex] = useState(0)
+  const [headerMode, setHeaderMode] = useState<'read' | 'inspect'>('read')
+  const [inspectDebugVisible, setInspectDebugVisible] = useState(false)
   const { selectedWordIndex, selectWord, clearWordSelection } = useWordSelectionState()
   const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
   const isKnownRef = useMemo(() => {
@@ -213,6 +215,8 @@ function VersePage() {
     setGraphSelection(null)
     setSelectedMatchIndex(0)
     clearWordSelection()
+    setHeaderMode('read')
+    setInspectDebugVisible(false)
   }, [clearWordSelection, ref?.book, ref?.chapter3, ref?.verse3])
 
   useEffect(() => {
@@ -461,11 +465,39 @@ function VersePage() {
                 navLoading={navLoading || navTransitionLoading}
               />
               <VerseHeader verseRef={ref} manifest={manifest} />
+              <div className="verse-page__header-controls" role="group" aria-label="Pasuk header mode">
+                <button
+                  type="button"
+                  onClick={() => setHeaderMode('read')}
+                  aria-pressed={headerMode === 'read'}
+                >
+                  Read
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHeaderMode('inspect')}
+                  aria-pressed={headerMode === 'inspect'}
+                >
+                  Inspect
+                </button>
+                {headerMode === 'inspect' ? (
+                  <button
+                    type="button"
+                    onClick={() => setInspectDebugVisible((value) => !value)}
+                    aria-pressed={inspectDebugVisible}
+                    className="verse-page__header-controls-debug"
+                    title="Show/hide per-word debug char length badges"
+                  >
+                    Debug
+                  </button>
+                ) : null}
+              </div>
               {pasukHeaderModel ? (
                 <PasukHeader
                   model={pasukHeaderModel}
                   selectedWordIndex={selectedWordIndex}
-                  mode="read"
+                  mode={headerMode}
+                  showDebugMeta={headerMode === 'inspect' && inspectDebugVisible}
                   onWordSelect={({ wordIndex }) => {
                     setGraphSelection(null)
                     setSelectedMatchIndex(0)

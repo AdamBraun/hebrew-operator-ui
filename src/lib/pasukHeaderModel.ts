@@ -172,7 +172,12 @@ function seamFromTraceWordLine(line: string): SeamKind {
   return seamFromDescriptor(exitKind[1], extractCutRank(line))
 }
 
-function deriveSeamsFromTraceJson(traceJson: unknown, wordCount: number): SeamKind[] | null {
+type JsonSeamData = {
+  seams: SeamKind[]
+  seamMetaByIndex: Map<number, Record<string, unknown>>
+}
+
+function deriveSeamsFromTraceJson(traceJson: unknown, wordCount: number): JsonSeamData | null {
   if (!isRecord(traceJson)) {
     return null
   }
@@ -183,6 +188,7 @@ function deriveSeamsFromTraceJson(traceJson: unknown, wordCount: number): SeamKi
   }
 
   const seams = Array.from({ length: wordCount }, () => 'unknown' as SeamKind)
+  const seamMetaByIndex = new Map<number, Record<string, unknown>>()
   let foundAny = false
 
   for (let i = 0; i < sections.length; i += 1) {
@@ -215,10 +221,24 @@ function deriveSeamsFromTraceJson(traceJson: unknown, wordCount: number): SeamKi
       toFiniteNumber(boundary?.rank) ?? toFiniteNumber(exitBoundary?.rank)
     )
     seams[index - 1] = seam
+    const seamMeta: Record<string, unknown> = {}
+    if (boundary?.rank !== undefined || exitBoundary?.rank !== undefined) {
+      seamMeta.rank = toFiniteNumber(boundary?.rank) ?? toFiniteNumber(exitBoundary?.rank)
+    }
+    if (isRecord(boundary?.left_trope)) {
+      const tropeName = boundary.left_trope.name
+      if (typeof tropeName === 'string' && tropeName.trim().length > 0) {
+        seamMeta.tropeName = tropeName.trim()
+      }
+      seamMeta.trope = boundary.left_trope
+    }
+    if (Object.keys(seamMeta).length > 0) {
+      seamMetaByIndex.set(index, seamMeta)
+    }
     foundAny = true
   }
 
-  return foundAny ? seams : null
+  return foundAny ? { seams, seamMetaByIndex } : null
 }
 
 export function deriveWordsFromTraceTxt(traceTxt: string): string[] {
@@ -264,6 +284,7 @@ export function buildPasukHeaderModel({
 }: BuildPasukHeaderModelArgs): PasukHeaderModel {
   const words = deriveWordsFromTraceTxt(traceTxt)
   const seamsFromTxt = deriveSeamsFromTraceTxt(traceTxt, words.length)
+  let seamMetaByIndex = new Map<number, Record<string, unknown>>()
 
   let seams = seamsFromTxt
   if (traceJson !== undefined) {
@@ -271,8 +292,9 @@ export function buildPasukHeaderModel({
       const seamsFromJson = deriveSeamsFromTraceJson(traceJson, words.length)
       if (seamsFromJson) {
         seams = seamsFromTxt.map((seam, index) =>
-          seam === 'unknown' ? seamsFromJson[index] : seam
+          seam === 'unknown' ? seamsFromJson.seams[index] : seam
         )
+        seamMetaByIndex = seamsFromJson.seamMetaByIndex
       }
     } catch {
       // Optional enrichment only; baseline must remain stable.
@@ -285,7 +307,7 @@ export function buildPasukHeaderModel({
       text,
       index: i + 1,
       seamAfter: seams[i] ?? 'unknown',
+      seamMeta: seamMetaByIndex.get(i + 1),
     })),
   }
 }
-

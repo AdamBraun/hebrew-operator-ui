@@ -9,6 +9,7 @@ type PasukHeaderProps = {
   model: PasukHeaderModel
   selectedWordIndex?: number
   mode: PasukHeaderMode
+  showDebugMeta?: boolean
   onWordSelect?: (payload: { wordIndex: number; wordText: string }) => void
   onWordHover?: (payload?: { wordIndex: number; wordText: string }) => void
   onSelectionClear?: () => void
@@ -19,6 +20,7 @@ function PasukHeader({
   model,
   selectedWordIndex,
   mode,
+  showDebugMeta = false,
   onWordSelect,
   onWordHover,
   onSelectionClear,
@@ -130,19 +132,44 @@ function PasukHeader({
     [className, isScrollable]
   )
 
+  function seamTooltipText(word: PasukHeaderModel['words'][number], baseLabel: string): string {
+    if (mode !== 'inspect') {
+      return baseLabel
+    }
+
+    const rank = word.seamMeta?.rank
+    const tropeName = word.seamMeta?.tropeName
+    const details: string[] = [`kind=${word.seamAfter}`]
+    if (typeof rank === 'number') {
+      details.push(`rank=${rank}`)
+    }
+    if (typeof tropeName === 'string' && tropeName.trim().length > 0) {
+      details.push(`trope=${tropeName}`)
+    }
+    return `${baseLabel} | ${details.join(', ')}`
+  }
+
   return (
     <section className={rootClassName} aria-label="Pasuk header">
       <div className="pasuk-header__scroll" dir="rtl" lang="he" ref={scrollRef}>
         {model.words.map((word) => {
           const seam = getSeamMarkerProps(word.seamAfter)
           const isSelected = selectedWordIndex === word.index
-          const seamTitle =
-            mode === 'inspect'
-              ? `${seam.ariaLabel} (${word.seamAfter})`
-              : seam.ariaLabel
+          const seamTitle = seamTooltipText(word, seam.ariaLabel)
+          const charLength = [...word.text].length
 
           return (
             <span key={word.index} className="pasuk-header__item">
+              {mode === 'inspect' ? (
+                <span className="pasuk-header__badge pasuk-header__badge--index" aria-hidden="true">
+                  #{word.index}
+                </span>
+              ) : null}
+              {mode === 'inspect' && showDebugMeta ? (
+                <span className="pasuk-header__badge pasuk-header__badge--debug" aria-hidden="true">
+                  {charLength}
+                </span>
+              ) : null}
               <button
                 ref={(node) => {
                   if (node) {
@@ -180,11 +207,6 @@ function PasukHeader({
                 aria-label={`Word ${word.index}: ${word.text}`}
               >
                 <span className="pasuk-header__word">{word.text}</span>
-                {mode === 'inspect' ? (
-                  <span className="pasuk-header__index" aria-hidden="true">
-                    #{word.index}
-                  </span>
-                ) : null}
               </button>
 
               <span
@@ -195,12 +217,6 @@ function PasukHeader({
               >
                 {seam.glyph}
               </span>
-
-              {mode === 'inspect' ? (
-                <span className="pasuk-header__seam-label" aria-hidden="true">
-                  {word.seamAfter}
-                </span>
-              ) : null}
             </span>
           )
         })}

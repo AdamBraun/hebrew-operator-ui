@@ -124,6 +124,7 @@ function DevPasukHeaderPage() {
             model={shortModel}
             selectedWordIndex={shortSelected}
             mode={mode}
+            showDebugMeta={mode === 'inspect'}
             onWordSelect={({ wordIndex }) => setShortSelected(wordIndex)}
             onSelectionClear={() => setShortSelected(undefined)}
           />
@@ -135,6 +136,7 @@ function DevPasukHeaderPage() {
             model={longModel}
             selectedWordIndex={longSelected}
             mode={mode}
+            showDebugMeta={mode === 'inspect'}
             onWordSelect={({ wordIndex }) => setLongSelected(wordIndex)}
             onSelectionClear={() => setLongSelected(undefined)}
           />
@@ -146,6 +148,7 @@ function DevPasukHeaderPage() {
             model={mixedSeamModel}
             selectedWordIndex={mixedSelected}
             mode={mode}
+            showDebugMeta={mode === 'inspect'}
             onWordSelect={({ wordIndex }) => setMixedSelected(wordIndex)}
             onSelectionClear={() => setMixedSelected(undefined)}
           />

@@ -71,6 +71,16 @@
   align-items: center;
 }
 
+.verse-page__header-controls {
+  display: inline-flex;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+
+.verse-page__header-controls-debug {
+  opacity: 0.9;
+}
+
 .verse-page__split {
   display: grid;
   grid-template-columns: minmax(0, 1.22fr) minmax(0, 1fr);
