@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { graphviz, type GraphvizRenderer } from 'd3-graphviz'
-import { extractGraphMatchTokensFromEvent, extractGraphTokenFromEvent } from '../lib/graphToken'
+import GraphDebugOverlay from './GraphViewer/GraphDebugOverlay'
+import {
+  getClickedGraphEntity,
+  type ClickedGraphEntity,
+} from './GraphViewer/getClickedGraphEntity'
 import './GraphViewer.css'
 
 type GraphViewerProps = {
@@ -159,19 +163,27 @@ function computeFitTransform(svg: SVGSVGElement, viewport: SVGGElement): GraphTr
 function bindDelegatedGraphClickHandler(
   container: HTMLDivElement,
   onNodeClickRef: MutableRefObject<GraphViewerProps['onNodeClick']>,
-  onTokenClickRef: MutableRefObject<GraphViewerProps['onTokenClick']>
+  onTokenClickRef: MutableRefObject<GraphViewerProps['onTokenClick']>,
+  onEntityClick: (entity: ClickedGraphEntity | null) => void
 ): () => void {
   function onContainerClick(event: MouseEvent) {
-    const tokenResult = extractGraphTokenFromEvent(event)
-    if (!tokenResult) {
+    const entity = getClickedGraphEntity(event)
+    onEntityClick(entity)
+    if (!entity) {
       return
     }
-    const matchTokens = extractGraphMatchTokensFromEvent(event)
-    onNodeClickRef.current?.(tokenResult.token)
-    onTokenClickRef.current?.(
-      tokenResult.token,
-      matchTokens.length > 0 ? matchTokens : [tokenResult.token]
-    )
+
+    if (entity.kind !== 'node') {
+      return
+    }
+
+    const matchTokens = [entity.id]
+    if (entity.label && !matchTokens.includes(entity.label)) {
+      matchTokens.push(entity.label)
+    }
+
+    onNodeClickRef.current?.(entity.id)
+    onTokenClickRef.current?.(entity.id, matchTokens)
   }
 
   container.addEventListener('click', onContainerClick)
@@ -332,6 +344,9 @@ function GraphViewer({ dot, onNodeClick, onTokenClick, className }: GraphViewerP
   const viewportRef = useRef<SVGGElement | null>(null)
   const onNodeClickRef = useRef<GraphViewerProps['onNodeClick']>(onNodeClick)
   const onTokenClickRef = useRef<GraphViewerProps['onTokenClick']>(onTokenClick)
+  const [lastClickedEntity, setLastClickedEntity] = useState<ClickedGraphEntity | null>(
+    null
+  )
   const [isRendering, setIsRendering] = useState(false)
   const [renderError, setRenderError] = useState<string | null>(null)
   const [showRawDot, setShowRawDot] = useState(false)
@@ -353,7 +368,8 @@ function GraphViewer({ dot, onNodeClick, onTokenClick, className }: GraphViewerP
     clickCleanupRef.current = bindDelegatedGraphClickHandler(
       container,
       onNodeClickRef,
-      onTokenClickRef
+      onTokenClickRef,
+      setLastClickedEntity
     )
     return () => {
       clickCleanupRef.current?.()
@@ -383,6 +399,7 @@ function GraphViewer({ dot, onNodeClick, onTokenClick, className }: GraphViewerP
     transformRef.current = INITIAL_TRANSFORM
     setRenderError(null)
     setShowRawDot(false)
+    setLastClickedEntity(null)
     container.innerHTML = ''
     if (!graphvizRef.current) {
       graphvizRef.current = graphviz(container, { useWorker: false }).zoom(false)
@@ -497,6 +514,7 @@ function GraphViewer({ dot, onNodeClick, onTokenClick, className }: GraphViewerP
 
       <div className="graph-viewer__canvas-wrap">
         <div ref={containerRef} className="graph-viewer__canvas" aria-busy={isRendering} />
+        <GraphDebugOverlay entity={lastClickedEntity} />
         {hasDot && isRendering ? <div className="graph-viewer__overlay">Rendering...</div> : null}
       </div>
     </div>

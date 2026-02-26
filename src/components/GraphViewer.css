@@ -61,8 +61,65 @@
   pointer-events: none;
 }
 
+.graph-debug-overlay {
+  position: absolute;
+  left: 0.625rem;
+  bottom: 0.625rem;
+  max-width: min(84%, 38rem);
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  background: rgba(248, 250, 252, 0.92);
+  color: #0f172a;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+
+.graph-debug-overlay__title {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.graph-debug-overlay__list {
+  margin: 0;
+}
+
+.graph-debug-overlay__list div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem;
+  align-items: start;
+}
+
+.graph-debug-overlay__list dt {
+  margin: 0;
+  color: #334155;
+  text-transform: lowercase;
+}
+
+.graph-debug-overlay__list dd {
+  margin: 0;
+  color: #0f172a;
+  overflow-wrap: anywhere;
+}
+
+.graph-debug-overlay__empty {
+  margin: 0;
+  color: #334155;
+}
+
 @media (max-width: 900px) {
   .graph-viewer__canvas-wrap {
     min-height: 320px;
+  }
+
+  .graph-debug-overlay {
+    max-width: calc(100% - 1.25rem);
+    font-size: 0.7rem;
   }
 }
