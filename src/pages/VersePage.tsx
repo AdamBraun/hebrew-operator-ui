@@ -7,6 +7,8 @@ import VerseHeader from '../components/VerseHeader'
 import VersePager from '../components/VersePager'
 import VerseText from '../components/VerseText'
 import TraceEventViewer from '../components/TraceEventViewer'
+import TraceTextViewer from '../components/TraceTextViewer'
+import { fallbackTextSearch } from '../lib/link/fallbackTextSearch'
 import { resolveGraphSelection } from '../lib/link/resolveGraphSelection'
 import type { GraphSelection } from '../lib/link/types'
 import { buildTraceIndex } from '../lib/trace/buildTraceIndex'
@@ -16,7 +18,13 @@ import { getNextRefTiered, getPrevRefTiered } from '../lib/navWalkTiered'
 import { normalizeVerseRef } from '../lib/ref'
 import { useVerseHotkeys } from '../hooks/useVerseHotkeys'
 import { useNavState } from '../state/nav'
-import { loadGraphDot, loadManifest, loadTraceJson, sourceUrlsForRef } from '../lib/source'
+import {
+  loadGraphDot,
+  loadManifest,
+  loadTraceJson,
+  loadTraceTxt,
+  sourceUrlsForRef,
+} from '../lib/source'
 import type { Manifest } from '../lib/types'
 import type { NavModel } from '../lib/navModel'
 import type { VerseRef } from '../lib/ref'
@@ -31,6 +39,7 @@ type LoadError = {
 type VerseData = {
   traceJson: unknown
   graphDot: string | null
+  traceTxt: string | null
 }
 
 function formatLocationLabel(location: TraceLocation): string {
@@ -222,10 +231,12 @@ function VersePage() {
 
       const urls = sourceUrlsForRef(currentRef)
 
-      const [manifestResult, traceJsonResult, graphDotResult] = await Promise.allSettled([
+      const [manifestResult, traceJsonResult, graphDotResult, traceTxtResult] =
+        await Promise.allSettled([
         loadManifest({ cache: 'no-cache' }),
         loadTraceJson(currentRef, { cache: 'no-cache' }),
         loadGraphDot(currentRef, { cache: 'no-cache' }),
+        loadTraceTxt(currentRef, { cache: 'no-cache' }),
       ])
 
       if (canceled) {
@@ -249,6 +260,7 @@ function VersePage() {
       setData({
         traceJson: traceJsonResult.value,
         graphDot: graphDotResult.status === 'fulfilled' ? graphDotResult.value : null,
+        traceTxt: traceTxtResult.status === 'fulfilled' ? traceTxtResult.value : null,
       })
       setLoading(false)
     }
@@ -265,7 +277,7 @@ function VersePage() {
       return { text: '(verse text unavailable)', source: 'none' as const }
     }
 
-    return extractVerseText(data.traceJson, '')
+    return extractVerseText(data.traceJson, data.traceTxt ?? '')
   }, [data])
 
   const traceModel = useMemo(() => {
@@ -330,6 +342,18 @@ function VersePage() {
     () => rankedLocations.filter((_, index) => index !== selectedMatchIndex),
     [rankedLocations, selectedMatchIndex]
   )
+
+  const fallbackSearch = useMemo(() => {
+    if (!graphSelection || !data?.traceTxt) {
+      return null
+    }
+
+    if (resolvedSelection.confidence === 'high') {
+      return null
+    }
+
+    return fallbackTextSearch(data.traceTxt, graphSelection, 200)
+  }, [data?.traceTxt, graphSelection, resolvedSelection.confidence])
 
   function retryLoad() {
     setRetryCount((count) => count + 1)
@@ -473,11 +497,16 @@ function VersePage() {
                       <p className="verse-page__error-detail">{traceModel.error.detail}</p>
                     </>
                   ) : traceModel.traceIndex ? (
-                    <TraceEventViewer
-                      traceJson={data.traceJson}
-                      primary={primaryTraceLocation}
-                      alternatives={alternativeTraceLocations}
-                    />
+                    <>
+                      <TraceEventViewer
+                        traceJson={data.traceJson}
+                        primary={primaryTraceLocation}
+                        alternatives={alternativeTraceLocations}
+                      />
+                      {resolvedSelection.confidence !== 'high' && data.traceTxt ? (
+                        <TraceTextViewer traceText={data.traceTxt} searchResult={fallbackSearch} />
+                      ) : null}
+                    </>
                   ) : (
                     <p className="verse-page__error-detail">Trace index unavailable.</p>
                   )}
