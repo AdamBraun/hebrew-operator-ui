@@ -41,6 +41,21 @@
   border-radius: 8px;
   background: var(--neutral-surface-1);
   padding: 0.55rem 0.7rem;
+  border-left-width: 3px;
+}
+
+.trace-event-viewer__card + .trace-event-viewer__card {
+  position: relative;
+}
+
+.trace-event-viewer__card + .trace-event-viewer__card::before {
+  content: '';
+  position: absolute;
+  top: -0.42rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  border-top: 1px dashed var(--neutral-border);
+  pointer-events: none;
 }
 
 .trace-event-viewer__card--selected {
@@ -51,6 +66,16 @@
 .trace-event-viewer__card--alternative {
   border-color: var(--semantic-state-warning);
   background: var(--p-tint-warning);
+}
+
+.trace-event-viewer__card--warning {
+  border-left-color: var(--state-warning);
+  background: var(--p-tint-warning);
+}
+
+.trace-event-viewer__card--error {
+  border-left-color: var(--state-error);
+  background: var(--p-tint-error);
 }
 
 .trace-event-viewer__card-header {
@@ -79,6 +104,20 @@
 .trace-event-viewer__badge--alt {
   background: var(--p-tint-warning);
   color: var(--semantic-state-warning);
+}
+
+.trace-event-viewer__badge--state {
+  background: var(--neutral-surface-2);
+}
+
+.trace-event-viewer__badge--warning {
+  color: var(--state-warning);
+  border: 1px solid var(--state-warning);
+}
+
+.trace-event-viewer__badge--error {
+  color: var(--state-error);
+  border: 1px solid var(--state-error);
 }
 
 .trace-event-viewer__fields {

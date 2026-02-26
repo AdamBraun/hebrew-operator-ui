@@ -35,12 +35,17 @@
   width: max-content;
 }
 
+.trace-viewer__line:nth-child(12n + 1):not(:first-child) {
+  border-top: 1px dashed var(--select-related);
+}
+
 .trace-viewer__line:last-child {
   border-bottom: 0;
 }
 
 .trace-viewer__line--highlight {
-  background: var(--p-tint-accent);
+  box-shadow: inset 3px 0 0 var(--select-related);
+  background: color-mix(in oklab, var(--neutral-surface-1) 78%, var(--select-related));
 }
 
 .trace-viewer__line-number {
@@ -49,6 +54,7 @@
   color: var(--neutral-text-muted);
   border-right: 1px solid var(--neutral-border);
   user-select: none;
+  background: var(--neutral-surface-1);
 }
 
 .trace-viewer__line-text {

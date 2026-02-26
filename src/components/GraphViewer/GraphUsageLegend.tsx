@@ -28,7 +28,7 @@ function GraphUsageLegend() {
             y1="5"
             x2="42"
             y2="5"
-            stroke="var(--neutral-text-muted)"
+            stroke="var(--edge-trope)"
             strokeWidth="2"
             strokeDasharray="5 4"
           />

@@ -50,6 +50,94 @@
   overflow: hidden;
 }
 
+.graph-viewer__canvas .graph-entity :is(ellipse, circle, polygon, rect, path) {
+  transition:
+    stroke 110ms ease,
+    fill 110ms ease,
+    opacity 110ms ease;
+}
+
+.graph-viewer__canvas g.node :is(ellipse, circle, polygon, rect, path) {
+  fill: var(--neutral-surface-1);
+  stroke: var(--node-boundary);
+  stroke-width: 1.5;
+}
+
+.graph-viewer__canvas g.node[data-semantic-node='scope'] :is(ellipse, circle, polygon, rect, path) {
+  fill: color-mix(in oklab, var(--node-scope) 16%, var(--neutral-surface-1));
+  stroke: var(--node-scope);
+}
+
+.graph-viewer__canvas g.node[data-semantic-node='handle'] :is(ellipse, circle, polygon, rect, path) {
+  stroke: var(--node-handle);
+}
+
+.graph-viewer__canvas g.node[data-semantic-node='boundary'] :is(ellipse, circle, polygon, rect, path) {
+  stroke: var(--node-boundary);
+}
+
+.graph-viewer__canvas g.node[data-semantic-node='rule'] :is(ellipse, circle, polygon, rect, path) {
+  stroke: var(--node-rule);
+}
+
+.graph-viewer__canvas g.node text {
+  fill: var(--neutral-text);
+}
+
+.graph-viewer__canvas g.edge path {
+  stroke: var(--edge-link);
+  stroke-width: 1.4;
+}
+
+.graph-viewer__canvas g.edge polygon {
+  fill: var(--edge-link);
+  stroke: var(--edge-link);
+}
+
+.graph-viewer__canvas g.edge text {
+  fill: var(--neutral-text-muted);
+}
+
+.graph-viewer__canvas g.edge[data-semantic-edge='carry'] path {
+  stroke: var(--edge-carry);
+}
+
+.graph-viewer__canvas g.edge[data-semantic-edge='carry'] polygon {
+  fill: var(--edge-carry);
+  stroke: var(--edge-carry);
+}
+
+.graph-viewer__canvas g.edge[data-semantic-edge='trope'] path {
+  stroke: var(--edge-trope);
+  stroke-dasharray: 6 4;
+}
+
+.graph-viewer__canvas g.edge[data-semantic-edge='trope'] polygon {
+  fill: var(--edge-trope);
+  stroke: var(--edge-trope);
+}
+
+.graph-viewer__canvas .graph-entity--selected :is(ellipse, circle, polygon, rect, path) {
+  stroke: var(--select-primary);
+}
+
+.graph-viewer__canvas .graph-entity--selected text {
+  fill: var(--neutral-text);
+}
+
+.graph-viewer__canvas .graph-entity--related :is(ellipse, circle, polygon, rect, path) {
+  stroke: var(--select-related);
+}
+
+.graph-viewer__canvas .graph-entity--dim :is(ellipse, circle, polygon, rect, path) {
+  stroke: var(--dim-inactive);
+  fill: color-mix(in oklab, var(--neutral-surface-1) 88%, var(--dim-inactive));
+}
+
+.graph-viewer__canvas .graph-entity--dim text {
+  fill: var(--dim-inactive);
+}
+
 .graph-viewer__overlay {
   position: absolute;
   inset: 0;

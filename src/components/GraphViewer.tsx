@@ -36,6 +36,11 @@ const RENDER_DEBOUNCE_MS = 150
 const LARGE_DOT_WARNING_THRESHOLD = 500_000
 const MIN_SCALE = 0.25
 const MAX_SCALE = 8
+const NODE_SEMANTICS = ['scope', 'handle', 'boundary', 'rule'] as const
+const EDGE_SEMANTICS = ['link', 'carry', 'trope'] as const
+
+type NodeSemantic = (typeof NODE_SEMANTICS)[number]
+type EdgeSemantic = (typeof EDGE_SEMANTICS)[number]
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim().length > 0) {
@@ -159,6 +164,170 @@ function computeFitTransform(svg: SVGSVGElement, viewport: SVGGElement): GraphTr
     scale,
     translateX: canvasWidth / 2 - graphCenterX * scale,
     translateY: canvasHeight / 2 - graphCenterY * scale,
+  }
+}
+
+function normalizeEntityId(raw: string): string {
+  const trimmed = raw.trim()
+  if (trimmed.length >= 2) {
+    const quote = trimmed[0]
+    if ((quote === '"' || quote === "'") && trimmed[trimmed.length - 1] === quote) {
+      return trimmed.slice(1, -1).trim()
+    }
+  }
+  return trimmed
+}
+
+function groupTitle(group: SVGGElement): string {
+  const title = group.querySelector(':scope > title')
+  return normalizeEntityId(title?.textContent ?? '')
+}
+
+function groupLabel(group: SVGGElement): string {
+  const text = Array.from(group.querySelectorAll(':scope text'))
+    .map((el) => (el.textContent ?? '').trim())
+    .filter(Boolean)
+    .join(' ')
+  return text.toLowerCase()
+}
+
+function parseEdgeEndpoints(edgeId: string): string[] {
+  const parts = edgeId.split(/->|--/g).map((part) => normalizeEntityId(part))
+  if (parts.length !== 2) {
+    return []
+  }
+  return parts
+}
+
+function classifyNodeSemantic(nodeId: string, label: string): NodeSemantic {
+  const id = nodeId.toLowerCase()
+  if (id === 'ω' || id.includes('scope') || label.includes('scope')) {
+    return 'scope'
+  }
+  if (id.startsWith('h:') || id.includes('handle') || label.includes('handle')) {
+    return 'handle'
+  }
+  if (
+    id.startsWith('c:') ||
+    id.includes('boundary') ||
+    id.includes('cut') ||
+    label.includes('boundary')
+  ) {
+    return 'boundary'
+  }
+  return 'rule'
+}
+
+function classifyEdgeSemantic(edgeId: string, label: string): EdgeSemantic {
+  const edge = edgeId.toLowerCase()
+  if (edge.includes('trope') || edge.includes('taam') || label.includes('trope')) {
+    return 'trope'
+  }
+
+  const endpoints = parseEdgeEndpoints(edgeId)
+  if (endpoints.some((endpoint) => endpoint.toLowerCase().startsWith('h:'))) {
+    return 'carry'
+  }
+
+  return 'link'
+}
+
+function setSelectionStateClass(group: SVGGElement, state: 'selected' | 'related' | 'dim' | null) {
+  group.classList.remove('graph-entity--selected', 'graph-entity--related', 'graph-entity--dim')
+  if (!state) {
+    return
+  }
+
+  group.classList.add(`graph-entity--${state}`)
+}
+
+function applyGraphSemanticClasses(
+  container: HTMLDivElement,
+  selectedEntity: ClickedGraphEntity | null
+) {
+  const svg = container.querySelector('svg')
+  if (!(svg instanceof SVGSVGElement)) {
+    return
+  }
+
+  const nodeGroups = Array.from(svg.querySelectorAll<SVGGElement>('g.node'))
+  const edgeGroups = Array.from(svg.querySelectorAll<SVGGElement>('g.edge'))
+
+  const nodeIds = new Map<SVGGElement, string>()
+  const edgeIds = new Map<SVGGElement, string>()
+
+  for (const group of nodeGroups) {
+    const id = groupTitle(group)
+    const semantic = classifyNodeSemantic(id, groupLabel(group))
+    nodeIds.set(group, id)
+    group.dataset.semanticNode = semantic
+    group.classList.add('graph-entity', 'graph-entity--node')
+  }
+
+  for (const group of edgeGroups) {
+    const id = groupTitle(group)
+    const semantic = classifyEdgeSemantic(id, groupLabel(group))
+    edgeIds.set(group, id)
+    group.dataset.semanticEdge = semantic
+    group.classList.add('graph-entity', 'graph-entity--edge')
+  }
+
+  for (const group of [...nodeGroups, ...edgeGroups]) {
+    setSelectionStateClass(group, null)
+  }
+
+  if (!selectedEntity) {
+    return
+  }
+
+  const selectedId = normalizeEntityId(selectedEntity.id)
+  const relatedNodeIds = new Set<string>()
+  const relatedEdgeIds = new Set<string>()
+  const selectedNodeIds = new Set<string>()
+  const selectedEdgeIds = new Set<string>()
+
+  if (selectedEntity.kind === 'node') {
+    selectedNodeIds.add(selectedId)
+    relatedNodeIds.add(selectedId)
+    for (const edgeId of edgeIds.values()) {
+      const endpoints = parseEdgeEndpoints(edgeId)
+      if (!endpoints.includes(selectedId)) {
+        continue
+      }
+
+      relatedEdgeIds.add(edgeId)
+      for (const endpoint of endpoints) {
+        relatedNodeIds.add(endpoint)
+      }
+    }
+  } else {
+    selectedEdgeIds.add(selectedId)
+    relatedEdgeIds.add(selectedId)
+    for (const endpoint of parseEdgeEndpoints(selectedId)) {
+      relatedNodeIds.add(endpoint)
+    }
+  }
+
+  for (const group of nodeGroups) {
+    const id = nodeIds.get(group) ?? ''
+    if (selectedNodeIds.has(id)) {
+      setSelectionStateClass(group, 'selected')
+    } else if (relatedNodeIds.has(id)) {
+      setSelectionStateClass(group, 'related')
+    } else {
+      setSelectionStateClass(group, 'dim')
+    }
+  }
+
+  for (const group of edgeGroups) {
+    const id = edgeIds.get(group) ?? ''
+    if (selectedEdgeIds.has(id)) {
+      setSelectionStateClass(group, 'selected')
+    } else if (relatedEdgeIds.has(id)) {
+      setSelectionStateClass(group, 'related')
+    } else {
+      setSelectionStateClass(group, 'dim')
+    }
   }
 }
 
@@ -437,6 +606,7 @@ function GraphViewer({
           svgRef,
           viewportRef
         )
+        applyGraphSemanticClasses(currentContainer, null)
       }
       setIsRendering(false)
     })
@@ -469,6 +639,15 @@ function GraphViewer({
       renderer.onerror(null)
     }
   }, [dot, hasDot])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || !hasDot) {
+      return
+    }
+
+    applyGraphSemanticClasses(container, lastClickedEntity)
+  }, [hasDot, lastClickedEntity])
 
   useEffect(() => {
     return () => {

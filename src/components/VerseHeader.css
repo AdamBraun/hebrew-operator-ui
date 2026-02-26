@@ -5,3 +5,73 @@
   flex-wrap: wrap;
   margin-bottom: 0.75rem;
 }
+
+.verse-header__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.65rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--neutral-border);
+  background: var(--neutral-surface-1);
+  color: var(--neutral-text);
+}
+
+.verse-header__chip--ref {
+  font-weight: 700;
+}
+
+.verse-header__seams {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.verse-header__seam-marker {
+  min-width: 2rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--neutral-border);
+  background: var(--neutral-surface-2);
+  color: var(--neutral-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.verse-header__seam-marker--seam-hard {
+  border-color: var(--seam-hard);
+}
+
+.verse-header__seam-marker--seam-glue {
+  border-color: var(--seam-glue);
+}
+
+.verse-header__seam-marker--seam-glue-maqqef {
+  border-color: var(--seam-glue-maqqef);
+}
+
+.verse-header__seam-marker--seam-cut-1 {
+  border-color: var(--seam-cut-1);
+}
+
+.verse-header__seam-marker--seam-cut-2 {
+  border-color: var(--seam-cut-2);
+}
+
+.verse-header__seam-marker--seam-cut-3 {
+  border-color: var(--seam-cut-3);
+}
+
+.verse-header__seam-marker--selected {
+  border-width: 2px;
+  box-shadow: 0 0 0 2px var(--p-select-primary-glow);
+  outline: 1px solid var(--select-primary);
+  outline-offset: 0;
+}
+
+.verse-header__seam-marker--related {
+  outline: 1px solid var(--select-related);
+  outline-offset: -1px;
+}

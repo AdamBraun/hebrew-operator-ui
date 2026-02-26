@@ -11,6 +11,7 @@ type TraceEventViewerProps = {
 
 type Primitive = string | number | boolean | null
 type UnknownRecord = Record<string, unknown>
+type EventSeverity = 'warning' | 'error' | null
 
 const ROOT_PRIORITY_KEYS = [
   'type',
@@ -188,6 +189,47 @@ function eventWordIndex(event: unknown): number | null {
   return null
 }
 
+function stringValues(event: unknown): string[] {
+  if (!isRecord(event)) {
+    return []
+  }
+
+  const out: string[] = []
+  for (const key of ['type', 'phase', 'status', 'message']) {
+    const value = event[key]
+    if (typeof value === 'string') {
+      out.push(value)
+    }
+  }
+
+  const data = event.data
+  if (!isRecord(data)) {
+    return out
+  }
+
+  for (const key of ['level', 'severity', 'kind', 'status', 'message']) {
+    const value = data[key]
+    if (typeof value === 'string') {
+      out.push(value)
+    }
+  }
+
+  return out
+}
+
+function classifyEventSeverity(event: unknown): EventSeverity {
+  const values = stringValues(event).map((value) => value.toLowerCase())
+  if (values.some((value) => /(^|[^a-z])(error|fatal|panic|fail)([^a-z]|$)/.test(value))) {
+    return 'error'
+  }
+
+  if (values.some((value) => /(^|[^a-z])(warn|warning|degraded)([^a-z]|$)/.test(value))) {
+    return 'warning'
+  }
+
+  return null
+}
+
 function toEventIndex(
   location: TraceLocation | undefined,
   events: readonly unknown[]
@@ -307,6 +349,7 @@ function TraceEventViewer({
       <div ref={scrollRef} className="trace-event-viewer__scroll" role="region" aria-label="Event cards">
         {events.map((event, index) => {
           const fields = eventFields(event)
+          const severity = classifyEventSeverity(event)
           const isSelected = selectedEventIndex === index
           const isAlternative = alternativeEventIndexSet.has(index)
 
@@ -318,6 +361,7 @@ function TraceEventViewer({
                 'trace-event-viewer__card',
                 isSelected ? 'trace-event-viewer__card--selected' : '',
                 isAlternative ? 'trace-event-viewer__card--alternative' : '',
+                severity ? `trace-event-viewer__card--${severity}` : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -328,6 +372,19 @@ function TraceEventViewer({
                 {!isSelected && isAlternative ? (
                   <span className="trace-event-viewer__badge trace-event-viewer__badge--alt">
                     alternative
+                  </span>
+                ) : null}
+                {severity ? (
+                  <span
+                    className={[
+                      'trace-event-viewer__badge',
+                      'trace-event-viewer__badge--state',
+                      severity === 'error'
+                        ? 'trace-event-viewer__badge--error'
+                        : 'trace-event-viewer__badge--warning',
+                    ].join(' ')}
+                  >
+                    {severity}
                   </span>
                 ) : null}
               </header>
