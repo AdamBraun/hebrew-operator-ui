@@ -10,6 +10,7 @@ function makeTraceIndex(byIdEntries: Array<[string, TraceLocation[]]>): TraceInd
   return {
     byId: new Map<string, TraceLocation[]>(byIdEntries),
     summary: {
+      adapterId: 'test',
       eventCount: 0,
       idCount: byIdEntries.length,
     },

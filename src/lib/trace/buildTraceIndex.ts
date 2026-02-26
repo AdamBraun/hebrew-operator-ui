@@ -1,4 +1,6 @@
 import type { TraceIndex, TraceLocation } from './types'
+import type { TraceAdapter } from './adapters/TraceAdapter'
+import { V1_TRACE_ADAPTER } from './adapters/v1'
 
 type UnknownRecord = Record<string, unknown>
 
@@ -50,20 +52,14 @@ const ID_HINT_KEYS = new Set([
   'r',
 ])
 
-const PRIMARY_EVENT_PATHS: ReadonlyArray<readonly string[]> = [
-  ['final_state', 'vm', 'H'],
-  ['vm', 'H'],
-  ['events'],
-  ['steps'],
-  ['ops'],
-]
-
 const SNAPSHOT_PATHS: ReadonlyArray<readonly string[]> = [['verse_snapshots'], ['snapshots']]
 const WORD_PATHS: ReadonlyArray<readonly string[]> = [
   ['word_sections'],
   ['prepared_tokens'],
   ['words'],
 ]
+
+export const TRACE_INDEX_ADAPTERS: readonly TraceAdapter[] = [V1_TRACE_ADAPTER]
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -173,7 +169,7 @@ function findFirstNumericByKey(
   return undefined
 }
 
-function extractTau(value: unknown): number | undefined {
+function extractTauGeneric(value: unknown): number | undefined {
   const exactTau = findFirstNumericByKey(
     value,
     (normalized, raw) => normalized === 'tau' || raw === 'τ'
@@ -185,12 +181,16 @@ function extractTau(value: unknown): number | undefined {
   return findFirstNumericByKey(value, (normalized) => normalized.includes('tau'))
 }
 
-function extractWordIndex(
+function extractWordIndexGeneric(
   value: unknown,
   kind: TraceLocation['kind']
 ): number | undefined {
-  const primary = findFirstNumericByKey(value, (normalized) =>
-    normalized === 'wordindex' || normalized === 'word'
+  const primary = findFirstNumericByKey(
+    value,
+    (normalized) =>
+      normalized === 'wordindex' ||
+      normalized === 'word' ||
+      normalized === 'word_index'
   )
   if (primary !== undefined) {
     return primary
@@ -254,33 +254,7 @@ function sequenceAtPaths(
   return null
 }
 
-function selectPrimaryEvents(trace: unknown): unknown[] {
-  const direct = sequenceAtPaths(trace, PRIMARY_EVENT_PATHS)
-  if (direct) {
-    return direct
-  }
-
-  const deepTrace = valueAtPath(trace, ['deep_trace'])
-  if (!Array.isArray(deepTrace) || deepTrace.length === 0) {
-    return []
-  }
-
-  const flattened: unknown[] = []
-  for (const item of deepTrace) {
-    if (!isRecord(item) || !Array.isArray(item.events)) {
-      continue
-    }
-    flattened.push(...item.events)
-  }
-
-  if (flattened.length > 0) {
-    return flattened
-  }
-
-  return deepTrace
-}
-
-function indexSequence(
+function indexGenericSequence(
   values: unknown[],
   kind: TraceLocation['kind'],
   byId: Map<string, TraceLocation[]>,
@@ -289,8 +263,8 @@ function indexSequence(
 ): void {
   for (let index = 0; index < values.length; index += 1) {
     const value = values[index]
-    const tau = extractTau(value)
-    const wordIndex = extractWordIndex(value, kind)
+    const tau = extractTauGeneric(value)
+    const wordIndex = extractWordIndexGeneric(value, kind)
     const location: TraceLocation = { kind, index }
 
     if (tau !== undefined) {
@@ -305,30 +279,103 @@ function indexSequence(
 
     const ids = new Set<string>()
     collectIdLikeValues(value, ids)
+    for (const id of [...ids].sort((left, right) => left.localeCompare(right))) {
+      appendLocation(byId, id, location)
+    }
+  }
+}
+
+function indexEventSequence(
+  values: unknown[],
+  adapter: TraceAdapter,
+  byId: Map<string, TraceLocation[]>,
+  byTau: Map<number, TraceLocation[]>,
+  byWordIndex: Map<number, TraceLocation[]>
+): void {
+  for (let index = 0; index < values.length; index += 1) {
+    const value = values[index]
+    const location: TraceLocation = { kind: 'event', index }
+
+    let tau: number | undefined
+    let wordIndex: number | undefined
+    let ids: string[] = []
+
+    try {
+      tau = adapter.extractTau(value)
+    } catch {
+      tau = undefined
+    }
+
+    try {
+      wordIndex = adapter.extractWordIndex(value)
+    } catch {
+      wordIndex = undefined
+    }
+
+    try {
+      ids = adapter.extractIds(value)
+    } catch {
+      ids = []
+    }
+
+    if (tau !== undefined) {
+      location.tau = tau
+      appendLocation(byTau, tau, location)
+    }
+
+    if (wordIndex !== undefined) {
+      location.wordIndex = wordIndex
+      appendLocation(byWordIndex, wordIndex, location)
+    }
+
     for (const id of ids) {
       appendLocation(byId, id, location)
     }
   }
 }
 
-export function buildTraceIndex(trace: unknown): TraceIndex {
+export function selectTraceAdapter(
+  traceJson: unknown,
+  adapters: readonly TraceAdapter[] = TRACE_INDEX_ADAPTERS
+): TraceAdapter | null {
+  for (const adapter of adapters) {
+    try {
+      if (adapter.detect(traceJson)) {
+        return adapter
+      }
+    } catch {
+      // ignore broken adapters; deterministic order still applies
+    }
+  }
+
+  return null
+}
+
+export function buildTraceIndex(
+  trace: unknown,
+  adapters: readonly TraceAdapter[] = TRACE_INDEX_ADAPTERS
+): TraceIndex {
   const byId = new Map<string, TraceLocation[]>()
   const byTau = new Map<number, TraceLocation[]>()
   const byWordIndex = new Map<number, TraceLocation[]>()
 
-  const events = selectPrimaryEvents(trace)
+  const adapter = selectTraceAdapter(trace, adapters)
+  const events = adapter ? adapter.getEventSequence(trace) : []
   const snapshots = sequenceAtPaths(trace, SNAPSHOT_PATHS) ?? []
   const words = sequenceAtPaths(trace, WORD_PATHS) ?? []
 
-  indexSequence(events, 'event', byId, byTau, byWordIndex)
-  indexSequence(snapshots, 'snapshot', byId, byTau, byWordIndex)
-  indexSequence(words, 'word', byId, byTau, byWordIndex)
+  if (adapter) {
+    indexEventSequence(events, adapter, byId, byTau, byWordIndex)
+  }
+  indexGenericSequence(snapshots, 'snapshot', byId, byTau, byWordIndex)
+  indexGenericSequence(words, 'word', byId, byTau, byWordIndex)
 
   return {
     byId,
     byTau: byTau.size > 0 ? byTau : undefined,
     byWordIndex: byWordIndex.size > 0 ? byWordIndex : undefined,
     summary: {
+      adapterId: adapter?.id ?? 'none',
       eventCount: events.length,
       idCount: byId.size,
     },

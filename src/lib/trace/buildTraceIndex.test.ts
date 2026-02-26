@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { FIXTURE_REGISTRY, getFixtureData } from '../../fixtures/fixtures'
 import { parseDot } from '../dot/parseDot'
-import { buildTraceIndex } from './buildTraceIndex'
+import { buildTraceIndex, selectTraceAdapter } from './buildTraceIndex'
+import type { TraceAdapter } from './adapters/TraceAdapter'
 import type { TraceIndex, TraceLocation } from './types'
 
 function serializeLocations(locations: TraceLocation[]): TraceLocation[] {
@@ -45,6 +46,7 @@ describe('buildTraceIndex', () => {
 
       const index = buildTraceIndex(fixture!.traceJsonData)
 
+      expect(index.summary.adapterId).toBe('v1')
       expect(index.summary.eventCount).toBeGreaterThan(0)
       expect(index.summary.idCount).toBe(index.byId.size)
       expect(index.byId.size).toBeGreaterThan(0)
@@ -92,5 +94,49 @@ describe('buildTraceIndex', () => {
     }
 
     expect(hasOverlap).toBe(true)
+  })
+
+  it('selects adapters deterministically using first-match-wins order', () => {
+    const calls: string[] = []
+
+    const adapters: readonly TraceAdapter[] = [
+      {
+        id: 'first',
+        detect: () => {
+          calls.push('first')
+          return false
+        },
+        getEventSequence: () => [],
+        extractIds: () => [],
+        extractTau: () => undefined,
+        extractWordIndex: () => undefined,
+      },
+      {
+        id: 'second',
+        detect: () => {
+          calls.push('second')
+          return true
+        },
+        getEventSequence: () => [],
+        extractIds: () => [],
+        extractTau: () => undefined,
+        extractWordIndex: () => undefined,
+      },
+      {
+        id: 'third',
+        detect: () => {
+          calls.push('third')
+          return true
+        },
+        getEventSequence: () => [],
+        extractIds: () => [],
+        extractTau: () => undefined,
+        extractWordIndex: () => undefined,
+      },
+    ]
+
+    const selected = selectTraceAdapter({ foo: 'bar' }, adapters)
+    expect(selected?.id).toBe('second')
+    expect(calls).toEqual(['first', 'second'])
   })
 })

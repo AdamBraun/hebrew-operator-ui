@@ -10,8 +10,8 @@ export type TraceIndex = {
   byWordIndex?: Map<number, TraceLocation[]>
   byTau?: Map<number, TraceLocation[]>
   summary: {
+    adapterId: string
     eventCount: number
     idCount: number
   }
 }
-
