@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppShell from '../layout/AppShell'
 import GraphViewer from '../components/GraphViewer'
+import PasukHeader from '../components/PasukHeader/PasukHeader'
 import SidebarNav from '../components/SidebarNav'
 import VerseHeader from '../components/VerseHeader'
 import VersePager from '../components/VersePager'
@@ -18,6 +19,7 @@ import { getNextRefTiered, getPrevRefTiered } from '../lib/navWalkTiered'
 import { normalizeVerseRef } from '../lib/ref'
 import { useVerseHotkeys } from '../hooks/useVerseHotkeys'
 import { useNavState } from '../state/nav'
+import { useWordSelectionState } from '../state/selection'
 import {
   loadGraphDot,
   loadManifest,
@@ -28,6 +30,7 @@ import {
 import type { Manifest } from '../lib/types'
 import type { NavModel } from '../lib/navModel'
 import type { VerseRef } from '../lib/ref'
+import { buildPasukHeaderModel } from '../lib/pasukHeaderModel'
 import { extractVerseText } from '../lib/verseText'
 import './VersePage.css'
 
@@ -113,6 +116,7 @@ function VersePage() {
   const [nextRef, setNextRef] = useState<VerseRef | null>(null)
   const [graphSelection, setGraphSelection] = useState<GraphSelection | null>(null)
   const [selectedMatchIndex, setSelectedMatchIndex] = useState(0)
+  const { selectedWordIndex, selectWord, clearWordSelection } = useWordSelectionState()
   const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
   const isKnownRef = useMemo(() => {
     if (!ref || !nav) {
@@ -208,7 +212,8 @@ function VersePage() {
   useEffect(() => {
     setGraphSelection(null)
     setSelectedMatchIndex(0)
-  }, [ref?.book, ref?.chapter3, ref?.verse3])
+    clearWordSelection()
+  }, [clearWordSelection, ref?.book, ref?.chapter3, ref?.verse3])
 
   useEffect(() => {
     if (!ref || isKnownRef === false) {
@@ -280,6 +285,18 @@ function VersePage() {
     return extractVerseText(data.traceJson, data.traceTxt ?? '')
   }, [data])
 
+  const pasukHeaderModel = useMemo(() => {
+    if (!data || !ref) {
+      return null
+    }
+
+    return buildPasukHeaderModel({
+      ref,
+      traceTxt: data.traceTxt ?? '',
+      traceJson: data.traceJson,
+    })
+  }, [data, ref])
+
   const traceModel = useMemo(() => {
     if (!data) {
       return {
@@ -341,6 +358,24 @@ function VersePage() {
   const alternativeTraceLocations = useMemo(
     () => rankedLocations.filter((_, index) => index !== selectedMatchIndex),
     [rankedLocations, selectedMatchIndex]
+  )
+
+  const selectedWordTraceLocations = useMemo(() => {
+    if (!traceModel.traceIndex?.byWordIndex || !selectedWordIndex) {
+      return []
+    }
+
+    return [...(traceModel.traceIndex.byWordIndex.get(selectedWordIndex) ?? [])]
+  }, [selectedWordIndex, traceModel.traceIndex])
+
+  const selectedWordPrimaryTraceLocation = useMemo(
+    () => selectedWordTraceLocations[0],
+    [selectedWordTraceLocations]
+  )
+
+  const selectedWordAlternativeTraceLocations = useMemo(
+    () => selectedWordTraceLocations.slice(1),
+    [selectedWordTraceLocations]
   )
 
   const fallbackSearch = useMemo(() => {
@@ -426,6 +461,19 @@ function VersePage() {
                 navLoading={navLoading || navTransitionLoading}
               />
               <VerseHeader verseRef={ref} manifest={manifest} />
+              {pasukHeaderModel ? (
+                <PasukHeader
+                  model={pasukHeaderModel}
+                  selectedWordIndex={selectedWordIndex}
+                  mode="read"
+                  onWordSelect={({ wordIndex }) => {
+                    setGraphSelection(null)
+                    setSelectedMatchIndex(0)
+                    selectWord(wordIndex)
+                  }}
+                  onSelectionClear={() => clearWordSelection()}
+                />
+              ) : null}
               <VerseText text={verseText.text} />
 
               <main className="verse-page__split">
@@ -456,6 +504,7 @@ function VersePage() {
                           return
                         }
 
+                        clearWordSelection()
                         setGraphSelection({
                           kind: entity.kind,
                           id: entity.id,
@@ -505,8 +554,14 @@ function VersePage() {
                     <>
                       <TraceEventViewer
                         traceJson={data.traceJson}
-                        primary={primaryTraceLocation}
-                        alternatives={alternativeTraceLocations}
+                        primary={
+                          graphSelection ? primaryTraceLocation : selectedWordPrimaryTraceLocation
+                        }
+                        alternatives={
+                          graphSelection
+                            ? alternativeTraceLocations
+                            : selectedWordAlternativeTraceLocations
+                        }
                       />
                       {resolvedSelection.confidence !== 'high' && data.traceTxt ? (
                         <TraceTextViewer traceText={data.traceTxt} searchResult={fallbackSearch} />

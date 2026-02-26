@@ -7,22 +7,26 @@ type PasukHeaderMode = 'read' | 'inspect'
 
 type PasukHeaderProps = {
   model: PasukHeaderModel
-  mode?: PasukHeaderMode
-  onWordSelect?: (wordIndex: number) => void
+  selectedWordIndex?: number
+  mode: PasukHeaderMode
+  onWordSelect?: (payload: { wordIndex: number; wordText: string }) => void
+  onWordHover?: (payload?: { wordIndex: number; wordText: string }) => void
+  onSelectionClear?: () => void
   className?: string
 }
 
 function PasukHeader({
   model,
-  mode = 'read',
+  selectedWordIndex,
+  mode,
   onWordSelect,
+  onWordHover,
+  onSelectionClear,
   className,
 }: PasukHeaderProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const chipRefs = useRef(new Map<number, HTMLButtonElement>())
   const [isScrollable, setIsScrollable] = useState(false)
-
-  const selectedWordIndex = model.selection?.wordIndex
 
   useEffect(() => {
     const container = scrollRef.current
@@ -60,6 +64,59 @@ function PasukHeader({
       inline: 'center',
     })
   }, [selectedWordIndex])
+
+  function findWordTextByIndex(wordIndex: number): string | null {
+    const word = model.words.find((entry) => entry.index === wordIndex)
+    return word?.text ?? null
+  }
+
+  function emitWordSelect(wordIndex: number): void {
+    const wordText = findWordTextByIndex(wordIndex)
+    if (!wordText) {
+      return
+    }
+
+    // Chosen D4 behavior: clicking an already-selected word is a no-op.
+    if (selectedWordIndex === wordIndex) {
+      return
+    }
+
+    onWordSelect?.({ wordIndex, wordText })
+  }
+
+  function emitWordHover(wordIndex?: number): void {
+    if (!onWordHover) {
+      return
+    }
+
+    if (wordIndex === undefined) {
+      onWordHover(undefined)
+      return
+    }
+
+    const wordText = findWordTextByIndex(wordIndex)
+    if (!wordText) {
+      onWordHover(undefined)
+      return
+    }
+
+    onWordHover({ wordIndex, wordText })
+  }
+
+  function nextWordIndexFromArrow(
+    currentWordIndex: number,
+    key: string
+  ): number | null {
+    if (key === 'ArrowLeft') {
+      return currentWordIndex + 1 <= model.words.length ? currentWordIndex + 1 : null
+    }
+
+    if (key === 'ArrowRight') {
+      return currentWordIndex - 1 >= 1 ? currentWordIndex - 1 : null
+    }
+
+    return null
+  }
 
   const rootClassName = useMemo(
     () =>
@@ -101,7 +158,24 @@ function PasukHeader({
                 ]
                   .filter(Boolean)
                   .join(' ')}
-                onClick={() => onWordSelect?.(word.index)}
+                onClick={() => emitWordSelect(word.index)}
+                onMouseEnter={() => emitWordHover(word.index)}
+                onMouseLeave={() => emitWordHover(undefined)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.preventDefault()
+                    onSelectionClear?.()
+                    return
+                  }
+
+                  const nextWordIndex = nextWordIndexFromArrow(word.index, event.key)
+                  if (nextWordIndex === null) {
+                    return
+                  }
+
+                  event.preventDefault()
+                  emitWordSelect(nextWordIndex)
+                }}
                 aria-pressed={isSelected}
                 aria-label={`Word ${word.index}: ${word.text}`}
               >
@@ -136,4 +210,3 @@ function PasukHeader({
 }
 
 export default PasukHeader
-

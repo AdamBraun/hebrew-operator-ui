@@ -154,6 +154,8 @@ Recommended `trace.txt` row parse shape:
   - set `selection.wordIndex`
   - emit selection event with word index
   - drive trace + graph highlighting from that selection
+- Click on already-selected word:
+  - no-op (no focus-mode toggle in MVP)
 - Hover on word chip:
   - optional transient highlight in trace/graph
   - clear on pointer leave
@@ -162,7 +164,10 @@ Recommended `trace.txt` row parse shape:
 
 - Word chips are keyboard reachable.
 - `Enter`/`Space` selects focused word.
-- Arrow navigation is supported across chips in visual order.
+- Arrow navigation is RTL-aware:
+  - `ArrowLeft` moves forward to next word index
+  - `ArrowRight` moves backward to previous word index
+- `Escape` clears selection.
 
 ### Scroll behavior
 
@@ -193,4 +198,3 @@ Coordinator responsibilities after `onWordSelect`:
 - Provide non-color cues for seam kinds (shape/label) so grayscale remains usable.
 - Keep control contrast >= 4.5:1 and text contrast >= 7:1.
 - Each chip must expose accessible name including word text; in inspect mode include index and seam in accessible description.
-

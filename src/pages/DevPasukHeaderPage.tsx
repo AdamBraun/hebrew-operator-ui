@@ -19,18 +19,11 @@ function buildModel(
   }
 }
 
-function withSelection(model: PasukHeaderModel, selectedWordIndex: number): PasukHeaderModel {
-  return {
-    ...model,
-    selection: { wordIndex: selectedWordIndex },
-  }
-}
-
 function DevPasukHeaderPage() {
   const [mode, setMode] = useState<'read' | 'inspect'>('read')
-  const [shortSelected, setShortSelected] = useState(3)
-  const [longSelected, setLongSelected] = useState(16)
-  const [mixedSelected, setMixedSelected] = useState(5)
+  const [shortSelected, setShortSelected] = useState<number | undefined>(3)
+  const [longSelected, setLongSelected] = useState<number | undefined>(16)
+  const [mixedSelected, setMixedSelected] = useState<number | undefined>(5)
 
   const shortModel = useMemo(
     () =>
@@ -128,27 +121,33 @@ function DevPasukHeaderPage() {
         <div>
           <h2 style={{ marginBottom: '0.4rem' }}>Short verse</h2>
           <PasukHeader
-            model={withSelection(shortModel, shortSelected)}
+            model={shortModel}
+            selectedWordIndex={shortSelected}
             mode={mode}
-            onWordSelect={setShortSelected}
+            onWordSelect={({ wordIndex }) => setShortSelected(wordIndex)}
+            onSelectionClear={() => setShortSelected(undefined)}
           />
         </div>
 
         <div>
           <h2 style={{ marginBottom: '0.4rem' }}>Long verse (horizontal scroll)</h2>
           <PasukHeader
-            model={withSelection(longModel, longSelected)}
+            model={longModel}
+            selectedWordIndex={longSelected}
             mode={mode}
-            onWordSelect={setLongSelected}
+            onWordSelect={({ wordIndex }) => setLongSelected(wordIndex)}
+            onSelectionClear={() => setLongSelected(undefined)}
           />
         </div>
 
         <div>
           <h2 style={{ marginBottom: '0.4rem' }}>All seam kinds</h2>
           <PasukHeader
-            model={withSelection(mixedSeamModel, mixedSelected)}
+            model={mixedSeamModel}
+            selectedWordIndex={mixedSelected}
             mode={mode}
-            onWordSelect={setMixedSelected}
+            onWordSelect={({ wordIndex }) => setMixedSelected(wordIndex)}
+            onSelectionClear={() => setMixedSelected(undefined)}
           />
         </div>
       </section>
@@ -157,4 +156,3 @@ function DevPasukHeaderPage() {
 }
 
 export default DevPasukHeaderPage
-
