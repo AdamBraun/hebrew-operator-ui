@@ -450,13 +450,18 @@ function VersePage() {
                   ) : (
                     <GraphViewer
                       dot={data.graphDot ?? ''}
-                      onEntityClick={(entity) =>
+                      onEntityClick={(entity) => {
+                        if (!entity) {
+                          setGraphSelection(null)
+                          return
+                        }
+
                         setGraphSelection({
                           kind: entity.kind,
                           id: entity.id,
                           label: entity.label,
                         })
-                      }
+                      }}
                     />
                   )}
                 </section>

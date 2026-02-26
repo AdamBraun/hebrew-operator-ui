@@ -12,7 +12,7 @@ type GraphViewerProps = {
   dot: string
   onNodeClick?: (handleId: string) => void
   onTokenClick?: (token: string, matchTokens?: string[]) => void
-  onEntityClick?: (entity: ClickedGraphEntity) => void
+  onEntityClick?: (entity: ClickedGraphEntity | null) => void
   className?: string
 }
 
@@ -348,6 +348,8 @@ function bindDelegatedGraphClickHandler(
 
     const entity = getClickedGraphEntity(event)
     if (!entity) {
+      onEntityClick(null)
+      onEntityClickRef.current?.(null)
       return
     }
 
