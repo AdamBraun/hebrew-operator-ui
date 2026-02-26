@@ -59,6 +59,7 @@ function ScopeLanesHeader({
   selection = null,
   onSelect,
 }: ScopeLanesHeaderProps) {
+  const headerRef = useRef<HTMLElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const { rects, contentWidth } = useWordMeasurements(containerRef)
   const [hoveredWordIndex, setHoveredWordIndex] = useState<number | undefined>(undefined)
@@ -66,6 +67,8 @@ function ScopeLanesHeader({
   const [legendOpen, setLegendOpen] = useState(false)
 
   const selectedWordIndex = selection?.type === 'word' ? selection.index : undefined
+  const tooltipSpan =
+    hoveredSpan ?? (selection?.type === 'span' ? (selection as ScopeSpanSelection) : undefined)
   const relatedSpan = useMemo(
     () =>
       smallestVisibleSpanContainingWord(
@@ -76,22 +79,40 @@ function ScopeLanesHeader({
   )
   const words = useMemo(() => model.words.map((word) => word.text), [model.words])
   const tooltip = useMemo(() => {
-    if (!hoveredSpan || rects.length === 0) {
+    if (!tooltipSpan || rects.length === 0) {
       return null
     }
-    return {
-      label: `Chunk rank ${hoveredSpan.rank}: words ${hoveredSpan.startWord}–${hoveredSpan.endWord}`,
+    const container = containerRef.current
+    const header = headerRef.current
+    if (!container || !header) {
+      return null
     }
-  }, [hoveredSpan, rects])
+    const startNode = container.querySelector<HTMLElement>(
+      `[data-word-index="${tooltipSpan.startWord}"]`
+    )
+    const endNode = container.querySelector<HTMLElement>(`[data-word-index="${tooltipSpan.endWord}"]`)
+    if (!startNode || !endNode) {
+      return null
+    }
+    const headerRect = header.getBoundingClientRect()
+    const startRect = startNode.getBoundingClientRect()
+    const endRect = endNode.getBoundingClientRect()
+    const rawX = (startRect.left + endRect.right) / 2 - headerRect.left
+    const x = Math.max(28, Math.min(headerRect.width - 28, rawX))
+    return {
+      x,
+      label: `Chunk rank ${tooltipSpan.rank}: words ${tooltipSpan.startWord}–${tooltipSpan.endWord}`,
+    }
+  }, [rects, tooltipSpan])
   const hoverSpanRef = useMemo(() => {
-    if (!hoveredSpan) {
+    if (!tooltipSpan) {
       return undefined
     }
-    return `rank=${hoveredSpan.rank};start=${hoveredSpan.startWord};end=${hoveredSpan.endWord}`
-  }, [hoveredSpan])
+    return `rank=${tooltipSpan.rank};start=${tooltipSpan.startWord};end=${tooltipSpan.endWord}`
+  }, [tooltipSpan])
 
   return (
-    <section className="scope-lanes-header" aria-label="Scope lanes header">
+    <section ref={headerRef} className="scope-lanes-header" aria-label="Scope lanes header">
       {mode === 'research' ? (
         <div className="scope-lanes-header__inspect-tools">
           <button
@@ -159,6 +180,7 @@ function ScopeLanesHeader({
         onPreviewSpan={(spanSelection) => setHoveredSpan(spanSelection)}
       />
       <ScopeSpanTooltip
+        x={tooltip?.x ?? 28}
         text={tooltip?.label ?? ''}
         visible={tooltip !== null}
         copyValue={mode === 'research' ? hoverSpanRef : undefined}
