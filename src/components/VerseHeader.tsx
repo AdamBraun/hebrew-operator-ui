@@ -1,4 +1,5 @@
 import type { VerseRef } from '../lib/ref'
+import './VerseHeader.css'
 
 type ManifestFields = {
   engineSha: string | null
@@ -51,22 +52,13 @@ function VerseHeader({ verseRef, manifest }: VerseHeaderProps) {
   const verseLabel = `${verseRef.book.toUpperCase()} ${displayNumber(verseRef.chapter3)}:${displayNumber(verseRef.verse3)}`
 
   return (
-    <header
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.9rem',
-        flexWrap: 'wrap',
-        marginBottom: '0.75rem',
-      }}
-    >
-      <strong>{verseLabel}</strong>
-      <span>engine_sha: {fields.engineSha ?? 'unknown'}</span>
-      <span>generated_at: {fields.generatedAt ?? 'unknown'}</span>
-      {fields.version ? <span>version: {fields.version}</span> : null}
+    <header className="verse-header">
+      <strong className="verse-header__label">{verseLabel}</strong>
+      <span className="verse-header__meta">engine_sha: {fields.engineSha ?? 'unknown'}</span>
+      <span className="verse-header__meta">generated_at: {fields.generatedAt ?? 'unknown'}</span>
+      {fields.version ? <span className="verse-header__meta">version: {fields.version}</span> : null}
     </header>
   )
 }
 
 export default VerseHeader
-

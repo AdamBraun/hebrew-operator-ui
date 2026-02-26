@@ -48,15 +48,11 @@
   text-align: right;
   color: var(--neutral-text-muted);
   border-right: 1px solid var(--neutral-border);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.82rem;
   user-select: none;
 }
 
 .trace-viewer__line-text {
   padding: 0.2rem 0.65rem;
   white-space: pre;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.85rem;
   color: var(--neutral-text);
 }

@@ -1,0 +1,71 @@
+:root {
+  --font-ui: 'IBM Plex Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-hebrew: 'Noto Serif Hebrew', 'SBL Hebrew', 'Ezra SIL', 'Times New Roman', serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+
+  --type-verse-header-size: 0.94rem;
+  --type-verse-text-size: 1.85rem;
+  --type-trace-size: 0.82rem;
+  --type-trace-line-number-size: 0.79rem;
+
+  --leading-verse-header: 1.35;
+  --leading-verse-text: 1.75;
+  --leading-trace: 1.45;
+}
+
+body {
+  font-family: var(--font-ui);
+}
+
+.verse-header {
+  font-family: var(--font-ui);
+  font-size: var(--type-verse-header-size);
+  line-height: var(--leading-verse-header);
+}
+
+.verse-header__label {
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
+.verse-header__meta {
+  color: var(--neutral-text-muted);
+}
+
+.verse-text {
+  direction: rtl;
+  unicode-bidi: isolate;
+  text-align: start;
+  font-family: var(--font-hebrew);
+  font-size: var(--type-verse-text-size);
+  line-height: var(--leading-verse-text);
+  font-feature-settings: 'kern' 1, 'mark' 1, 'mkmk' 1;
+}
+
+.trace-viewer__line-number,
+.trace-text-viewer__line-number,
+.trace-event-viewer__index,
+.trace-event-viewer__field dt,
+.trace-event-viewer__field dd,
+.trace-event-viewer__preview,
+.trace-viewer__line-text,
+.trace-text-viewer__line-text {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+.trace-viewer__line-number,
+.trace-text-viewer__line-number,
+.trace-event-viewer__index {
+  font-size: var(--type-trace-line-number-size);
+}
+
+.trace-viewer__line-text,
+.trace-text-viewer__line-text,
+.trace-event-viewer__field dt,
+.trace-event-viewer__field dd,
+.trace-event-viewer__preview {
+  font-size: var(--type-trace-size);
+  line-height: var(--leading-trace);
+}
