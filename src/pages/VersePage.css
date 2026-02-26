@@ -81,6 +81,8 @@
 
 .verse-page__scope-mode {
   display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.3rem;
   margin-bottom: 0.35rem;
 }
@@ -98,6 +100,22 @@
   color: var(--select-primary) !important;
   border-color: var(--select-primary) !important;
   box-shadow: 0 0 0 2px var(--p-select-primary-glow);
+}
+
+.verse-page__scope-toggle {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  border: 1px solid var(--neutral-border);
+  border-radius: 6px;
+  padding: 0.15rem 0.45rem;
+  background: var(--neutral-surface-1);
+  color: var(--neutral-text);
+  font-size: 0.78rem;
+}
+
+.verse-page__scope-toggle:has(input:disabled) {
+  opacity: 0.6;
 }
 
 .verse-page__split {

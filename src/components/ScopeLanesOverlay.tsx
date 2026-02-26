@@ -10,6 +10,7 @@ type ScopeLanesOverlayProps = {
   rects: WordRect[]
   lanes: ScopeLanesModel['lanes']
   contentWidth: number
+  colorByRank?: boolean
   selection?: ScopeSelection | null
   relatedSpan?: ScopeSpanSelection | null
   onSelectSpan?: (selection: ScopeSpanSelection) => void
@@ -21,6 +22,7 @@ function ScopeLanesOverlay({
   rects,
   lanes,
   contentWidth,
+  colorByRank = false,
   selection,
   relatedSpan,
   onSelectSpan,
@@ -47,7 +49,12 @@ function ScopeLanesOverlay({
 
   return (
     <svg
-      className="scope-lanes-overlay"
+      className={[
+        'scope-lanes-overlay',
+        colorByRank ? 'scope-lanes-overlay--color-by-rank' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       width={contentWidth}
       height={svgHeight}
       viewBox={`0 0 ${contentWidth} ${svgHeight}`}

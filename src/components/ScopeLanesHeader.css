@@ -37,7 +37,7 @@
   position: absolute;
   bottom: -1.25rem;
   transform: translateX(-50%);
-  pointer-events: none;
+  pointer-events: auto;
   z-index: 3;
   border: 1px solid var(--neutral-border);
   background: var(--neutral-surface-1);
@@ -47,4 +47,21 @@
   padding: 0.18rem 0.45rem;
   white-space: nowrap;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--neutral-text) 8%, transparent);
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.scope-span-tooltip__text {
+  line-height: 1.2;
+}
+
+.scope-span-tooltip__copy {
+  border: 1px solid var(--neutral-border);
+  border-radius: 5px;
+  background: var(--neutral-surface-2);
+  color: var(--neutral-text);
+  font-size: 0.68rem;
+  padding: 0.08rem 0.35rem;
+  cursor: pointer;
 }

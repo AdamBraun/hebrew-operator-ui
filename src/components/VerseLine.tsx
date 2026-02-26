@@ -13,6 +13,7 @@ type VerseLineProps = {
   words: string[]
   containerRef?: RefObject<HTMLDivElement | null>
   selectedWordIndex?: number
+  showWordIndexOnHover?: boolean
   onWordClick?: (index: number) => void
   onWordHover?: (index?: number) => void
   onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void
@@ -40,6 +41,7 @@ function VerseLine({
   words,
   containerRef,
   selectedWordIndex,
+  showWordIndexOnHover = false,
   onWordClick,
   onWordHover,
   onKeyDown,
@@ -70,6 +72,7 @@ function VerseLine({
             ]
               .filter(Boolean)
               .join(' ')}
+            title={showWordIndexOnHover ? `#${index + 1}` : undefined}
             onClick={() => onWordClick?.(index + 1)}
             onMouseEnter={() => onWordHover?.(index + 1)}
             onMouseLeave={() => onWordHover?.(undefined)}

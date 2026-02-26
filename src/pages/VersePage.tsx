@@ -43,6 +43,40 @@ type VerseData = {
   traceTxt: string | null
 }
 
+type ScopeHeaderPreferences = {
+  mode: 'lite' | 'research'
+  showFineLane: boolean
+  colorByRank: boolean
+}
+
+const SCOPE_HEADER_PREFS_KEY = 'scope-lanes-header-prefs.v1'
+const DEFAULT_SCOPE_HEADER_PREFERENCES: ScopeHeaderPreferences = {
+  mode: 'lite',
+  showFineLane: false,
+  colorByRank: false,
+}
+
+function loadScopeHeaderPreferences(): ScopeHeaderPreferences {
+  if (typeof window === 'undefined') {
+    return DEFAULT_SCOPE_HEADER_PREFERENCES
+  }
+
+  try {
+    const raw = window.localStorage.getItem(SCOPE_HEADER_PREFS_KEY)
+    if (!raw) {
+      return DEFAULT_SCOPE_HEADER_PREFERENCES
+    }
+    const parsed = JSON.parse(raw) as Partial<ScopeHeaderPreferences>
+    return {
+      mode: parsed.mode === 'research' ? 'research' : 'lite',
+      showFineLane: Boolean(parsed.showFineLane),
+      colorByRank: Boolean(parsed.colorByRank),
+    }
+  } catch {
+    return DEFAULT_SCOPE_HEADER_PREFERENCES
+  }
+}
+
 function formatLocationLabel(location: TraceLocation): string {
   const parts = [`${location.kind} #${location.index}`]
   if (location.tau !== undefined) {
@@ -113,7 +147,9 @@ function VersePage() {
   const [graphSelection, setGraphSelection] = useState<GraphSelection | null>(null)
   const [selectedMatchIndex, setSelectedMatchIndex] = useState(0)
   const [scopeSelection, setScopeSelection] = useState<ScopeSelection | null>(null)
-  const [scopeHeaderMode, setScopeHeaderMode] = useState<'read' | 'inspect'>('read')
+  const [scopeHeaderPreferences, setScopeHeaderPreferences] = useState<ScopeHeaderPreferences>(
+    () => loadScopeHeaderPreferences()
+  )
 
   const fallbackRef = useMemo(() => firstAvailableRef(nav), [nav])
   const isKnownRef = useMemo(() => {
@@ -209,8 +245,14 @@ function VersePage() {
     setGraphSelection(null)
     setSelectedMatchIndex(0)
     setScopeSelection(null)
-    setScopeHeaderMode('read')
   }, [ref?.book, ref?.chapter3, ref?.verse3])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    window.localStorage.setItem(SCOPE_HEADER_PREFS_KEY, JSON.stringify(scopeHeaderPreferences))
+  }, [scopeHeaderPreferences])
 
   useEffect(() => {
     if (!ref || isKnownRef === false) {
@@ -276,11 +318,14 @@ function VersePage() {
       return null
     }
     const model = buildScopeLanesModel(ref, data.traceTxt ?? '', data.traceJson)
+    const researchMode = scopeHeaderPreferences.mode === 'research'
     return {
       ...model,
-      lanes: segmentScopeLanes(model.boundariesAfter, model.words.length),
+      lanes: segmentScopeLanes(model.boundariesAfter, model.words.length, {
+        showRank1: researchMode && scopeHeaderPreferences.showFineLane,
+      }),
     }
-  }, [data, ref])
+  }, [data, ref, scopeHeaderPreferences.mode, scopeHeaderPreferences.showFineLane])
 
   const traceModel = useMemo(() => {
     if (!data) {
@@ -451,24 +496,70 @@ function VersePage() {
                   <div className="verse-page__scope-mode" role="group" aria-label="Scope lanes mode">
                     <button
                       type="button"
-                      className={scopeHeaderMode === 'read' ? 'verse-page__scope-mode-btn--active' : ''}
-                      aria-pressed={scopeHeaderMode === 'read'}
-                      onClick={() => setScopeHeaderMode('read')}
+                      className={
+                        scopeHeaderPreferences.mode === 'lite' ? 'verse-page__scope-mode-btn--active' : ''
+                      }
+                      aria-pressed={scopeHeaderPreferences.mode === 'lite'}
+                      onClick={() =>
+                        setScopeHeaderPreferences((current) => ({
+                          ...current,
+                          mode: 'lite',
+                        }))
+                      }
                     >
-                      Read
+                      Lite
                     </button>
                     <button
                       type="button"
-                      className={scopeHeaderMode === 'inspect' ? 'verse-page__scope-mode-btn--active' : ''}
-                      aria-pressed={scopeHeaderMode === 'inspect'}
-                      onClick={() => setScopeHeaderMode('inspect')}
+                      className={
+                        scopeHeaderPreferences.mode === 'research' ? 'verse-page__scope-mode-btn--active' : ''
+                      }
+                      aria-pressed={scopeHeaderPreferences.mode === 'research'}
+                      onClick={() =>
+                        setScopeHeaderPreferences((current) => ({
+                          ...current,
+                          mode: 'research',
+                        }))
+                      }
                     >
-                      Inspect
+                      Research
                     </button>
+                    <label className="verse-page__scope-toggle">
+                      <input
+                        type="checkbox"
+                        checked={scopeHeaderPreferences.showFineLane}
+                        disabled={scopeHeaderPreferences.mode !== 'research'}
+                        onChange={(event) =>
+                          setScopeHeaderPreferences((current) => ({
+                            ...current,
+                            showFineLane: event.target.checked,
+                          }))
+                        }
+                      />
+                      <span>Fine lane</span>
+                    </label>
+                    <label className="verse-page__scope-toggle">
+                      <input
+                        type="checkbox"
+                        checked={scopeHeaderPreferences.colorByRank}
+                        disabled={scopeHeaderPreferences.mode !== 'research'}
+                        onChange={(event) =>
+                          setScopeHeaderPreferences((current) => ({
+                            ...current,
+                            colorByRank: event.target.checked,
+                          }))
+                        }
+                      />
+                      <span>Color by rank</span>
+                    </label>
                   </div>
                   <ScopeLanesHeader
                     model={scopeLanesModel}
-                    mode={scopeHeaderMode}
+                    mode={scopeHeaderPreferences.mode}
+                    colorByRank={
+                      scopeHeaderPreferences.mode === 'research' && scopeHeaderPreferences.colorByRank
+                    }
+                    showWordIndexOnHover={scopeHeaderPreferences.mode === 'research'}
                     selection={scopeSelection}
                     onSelect={(selection) => {
                       setGraphSelection(null)

@@ -30,6 +30,18 @@
   stroke-width: var(--scope-lane-rank1-width, 1.5px);
 }
 
+.scope-lanes-overlay--color-by-rank .scope-lanes-overlay__path--rank-3 .scope-lanes-overlay__visible {
+  stroke: var(--seam-cut-3);
+}
+
+.scope-lanes-overlay--color-by-rank .scope-lanes-overlay__path--rank-2 .scope-lanes-overlay__visible {
+  stroke: var(--seam-cut-2);
+}
+
+.scope-lanes-overlay--color-by-rank .scope-lanes-overlay__path--rank-1 .scope-lanes-overlay__visible {
+  stroke: var(--seam-cut-1);
+}
+
 .scope-lanes-overlay__path--hovered .scope-lanes-overlay__visible {
   stroke: var(--edge-link);
 }

@@ -10,7 +10,9 @@ import './ScopeLanesHeader.css'
 
 type ScopeLanesHeaderProps = {
   model: ScopeLanesModel
-  mode?: 'read' | 'inspect'
+  mode?: 'lite' | 'research'
+  colorByRank?: boolean
+  showWordIndexOnHover?: boolean
   selection?: ScopeSelection | null
   onSelect: (selection: ScopeSelection | null) => void
 }
@@ -49,7 +51,14 @@ function smallestVisibleSpanContainingWord(
   }
 }
 
-function ScopeLanesHeader({ model, mode = 'read', selection = null, onSelect }: ScopeLanesHeaderProps) {
+function ScopeLanesHeader({
+  model,
+  mode = 'lite',
+  colorByRank = false,
+  showWordIndexOnHover = false,
+  selection = null,
+  onSelect,
+}: ScopeLanesHeaderProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const { rects, contentWidth } = useWordMeasurements(containerRef)
   const [hoveredWordIndex, setHoveredWordIndex] = useState<number | undefined>(undefined)
@@ -80,10 +89,16 @@ function ScopeLanesHeader({ model, mode = 'read', selection = null, onSelect }: 
       label: `Chunk rank ${hoveredSpan.rank}: words ${hoveredSpan.startWord}–${hoveredSpan.endWord}`,
     }
   }, [hoveredSpan, rects])
+  const hoverSpanRef = useMemo(() => {
+    if (!hoveredSpan) {
+      return undefined
+    }
+    return `rank=${hoveredSpan.rank};start=${hoveredSpan.startWord};end=${hoveredSpan.endWord}`
+  }, [hoveredSpan])
 
   return (
     <section className="scope-lanes-header" aria-label="Scope lanes header">
-      {mode === 'inspect' ? (
+      {mode === 'research' ? (
         <div className="scope-lanes-header__inspect-tools">
           <button
             type="button"
@@ -101,6 +116,7 @@ function ScopeLanesHeader({ model, mode = 'read', selection = null, onSelect }: 
         words={words}
         containerRef={containerRef}
         selectedWordIndex={selectedWordIndex}
+        showWordIndexOnHover={showWordIndexOnHover}
         onWordClick={(index) => {
           onSelect({ type: 'word', index })
         }}
@@ -142,12 +158,24 @@ function ScopeLanesHeader({ model, mode = 'read', selection = null, onSelect }: 
         rects={rects}
         lanes={model.lanes}
         contentWidth={contentWidth}
+        colorByRank={colorByRank}
         selection={selection}
         relatedSpan={relatedSpan}
         onSelectSpan={(spanSelection) => onSelect(spanSelection)}
         onPreviewSpan={(spanSelection) => setHoveredSpan(spanSelection)}
       />
-      <ScopeSpanTooltip x={tooltip?.x ?? 0} text={tooltip?.label ?? ''} visible={tooltip !== null} />
+      <ScopeSpanTooltip
+        x={tooltip?.x ?? 0}
+        text={tooltip?.label ?? ''}
+        visible={tooltip !== null}
+        copyValue={mode === 'research' ? hoverSpanRef : undefined}
+        onCopy={(value) => {
+          if (typeof navigator === 'undefined' || !navigator.clipboard) {
+            return
+          }
+          void navigator.clipboard.writeText(value)
+        }}
+      />
     </section>
   )
 }
