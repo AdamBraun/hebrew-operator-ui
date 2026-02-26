@@ -1,11 +1,11 @@
 :root {
   color-scheme: light;
-  --neutral-bg: #f3f5f8;
-  --neutral-surface-1: #fbfcfe;
-  --neutral-surface-2: #f0f3f7;
-  --neutral-border: #5f6d80;
-  --neutral-text: #111a26;
-  --neutral-text-muted: #35465b;
+  --neutral-bg: rgb(243 245 248);
+  --neutral-surface-1: rgb(251 252 254);
+  --neutral-surface-2: rgb(240 243 247);
+  --neutral-border: rgb(95 109 128);
+  --neutral-text: rgb(17 26 38);
+  --neutral-text-muted: rgb(53 70 91);
   --neutral-overlay-soft: rgba(95, 109, 128, 0.45);
   --neutral-shadow-1: rgba(17, 26, 38, 0.12);
 }
@@ -13,12 +13,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --neutral-bg: #0d1219;
-    --neutral-surface-1: #141b25;
-    --neutral-surface-2: #1b2431;
-    --neutral-border: #8ea0b8;
-    --neutral-text: #edf2f8;
-    --neutral-text-muted: #c3cfdf;
+    --neutral-bg: rgb(13 18 25);
+    --neutral-surface-1: rgb(20 27 37);
+    --neutral-surface-2: rgb(27 36 49);
+    --neutral-border: rgb(142 160 184);
+    --neutral-text: rgb(237 242 248);
+    --neutral-text-muted: rgb(195 207 223);
     --neutral-overlay-soft: rgba(142, 160, 184, 0.42);
     --neutral-shadow-1: rgba(13, 18, 25, 0.45);
   }
@@ -26,24 +26,24 @@
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --neutral-bg: #f3f5f8;
-  --neutral-surface-1: #fbfcfe;
-  --neutral-surface-2: #f0f3f7;
-  --neutral-border: #5f6d80;
-  --neutral-text: #111a26;
-  --neutral-text-muted: #35465b;
+  --neutral-bg: rgb(243 245 248);
+  --neutral-surface-1: rgb(251 252 254);
+  --neutral-surface-2: rgb(240 243 247);
+  --neutral-border: rgb(95 109 128);
+  --neutral-text: rgb(17 26 38);
+  --neutral-text-muted: rgb(53 70 91);
   --neutral-overlay-soft: rgba(95, 109, 128, 0.45);
   --neutral-shadow-1: rgba(17, 26, 38, 0.12);
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --neutral-bg: #0d1219;
-  --neutral-surface-1: #141b25;
-  --neutral-surface-2: #1b2431;
-  --neutral-border: #8ea0b8;
-  --neutral-text: #edf2f8;
-  --neutral-text-muted: #c3cfdf;
+  --neutral-bg: rgb(13 18 25);
+  --neutral-surface-1: rgb(20 27 37);
+  --neutral-surface-2: rgb(27 36 49);
+  --neutral-border: rgb(142 160 184);
+  --neutral-text: rgb(237 242 248);
+  --neutral-text-muted: rgb(195 207 223);
   --neutral-overlay-soft: rgba(142, 160, 184, 0.42);
   --neutral-shadow-1: rgba(13, 18, 25, 0.45);
 }

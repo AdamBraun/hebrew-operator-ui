@@ -1,7 +1,4 @@
-@import './design/tokens.neutral.css';
-@import './design/palette.cool.css';
-@import './design/palette.parchment.css';
-@import './design/tokens.semantic.css';
+@import './design/index.css';
 
 body {
   margin: 0;
